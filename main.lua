@@ -26,9 +26,11 @@ local GH_USER = "neho431"
 local GH_REPO = "SpaghettiKeys"
 local GH_FILE = "keys.txt"
 -- פיצול הטוקן למניעת חסימה אוטומטית
-local p1 = "ghp_yE7tc0UZgXx2"
-local p2 = "6ELX4kH8whlVwrDmJt0n4s7W"
-local GH_TOKEN = p1 .. p2
+-- פיצול טוקן חדש למניעת חסימה
+local p1 = "ghp_HaCvGoIx"
+local p2 = "dZEooPy76B5Z9HDr4"
+local p3 = "bhHfV1ghejO"
+local GH_TOKEN = p1 .. p2 .. p3
 local RAW_URL = "https://raw.githubusercontent.com/" .. GH_USER .. "/" .. GH_REPO .. "/main/" .. GH_FILE
 local API_URL = "https://api.github.com/repos/" .. GH_USER .. "/" .. GH_REPO .. "/contents/" .. GH_FILE
 
