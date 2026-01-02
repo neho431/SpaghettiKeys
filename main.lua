@@ -1,5 +1,5 @@
 --[[
-    Spaghetti Mafia Hub v1 (DEBUG & FIX VERSION)
+    Spaghetti Mafia Hub v1 (FINAL GITHUB INTEGRATION)
     Branding: "עולם הכיף"
     Backend: GitHub Single-Use Key System
 ]]
@@ -25,16 +25,11 @@ local LocalPlayer = Players.LocalPlayer
 local GH_USER = "neho431"
 local GH_REPO = "SpaghettiKeys"
 local GH_FILE = "keys.txt"
--- פיצול הטוקן למניעת חסימה אוטומטית
--- פיצול טוקן חדש למניעת חסימה
-local p1 = "ghp_HaCvGoIx"
-local p2 = "dZEooPy76B5Z9HDr4"
-local p3 = "bhHfV1ghejO"
-local GH_TOKEN = p1 .. p2 .. p3
+local GH_TOKEN = "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"
 local RAW_URL = "https://raw.githubusercontent.com/" .. GH_USER .. "/" .. GH_REPO .. "/main/" .. GH_FILE
 local API_URL = "https://api.github.com/repos/" .. GH_USER .. "/" .. GH_REPO .. "/contents/" .. GH_FILE
 
---// פונקציית Base64 מלאה ותקינה
+--// פונקציית Base64 מלאה (קידוד)
 local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 function base64encode(data)
     return ((data:gsub('.', function(x) 
@@ -69,47 +64,7 @@ local KeySub = Instance.new("TextLabel", KeyFrame); KeySub.Size = UDim2.new(1,0,
 local KeyInput = Instance.new("TextBox", KeyFrame); KeyInput.Size = UDim2.new(0.7,0,0,45); KeyInput.Position = UDim2.new(0.15,0,0.4,0); KeyInput.BackgroundColor3 = Theme.Box; KeyInput.TextColor3 = Color3.new(1,1,1); KeyInput.PlaceholderText = "Enter Key..."; KeyInput.Text = ""; KeyInput.Font = Enum.Font.Gotham; KeyInput.TextSize = 14; Lib:Corner(KeyInput, 6)
 local KeyBtn = Instance.new("TextButton", KeyFrame); KeyBtn.Size = UDim2.new(0.4,0,0,40); KeyBtn.Position = UDim2.new(0.3,0,0.75,0); KeyBtn.BackgroundColor3 = Theme.Gold; KeyBtn.Text = "LOGIN / כניסה"; KeyBtn.Font = Enum.Font.GothamBold; KeyBtn.TextSize = 16; Lib:Corner(KeyBtn, 6)
 
---// פונקציית אימות ומחיקה עם Debug Prints
-local function AuthenticateAndDestroy(inputKey)
-    inputKey = trim(inputKey)
-    KeyBtn.Text = "CHECKING..."; KeyBtn.Active = false
-    print("--- [DEBUG] Starting Authentication ---")
-    
-    -- 1. הורדת רשימת המפתחות
-  print("[1] Fetching keys from: " .. RAW_URL)
-    local success, allKeysRaw = pcall(function()
-        return game:HttpGet(RAW_URL .. "?t=" .. tick())
-    end)
-    
-    if not success or not allKeysRaw then 
-        warn("[ERROR] Failed to connect to GitHub Raw URL.")
-        KeyBtn.Text = "CONN ERROR"; task.wait(2); KeyBtn.Text = "LOGIN / כניסה"; KeyBtn.Active = true; return false 
-    end
-    
-    print("[2] Keys received from server:\n" .. allKeysRaw)
-    
-    -- בדיקה אם המפתח נמצא בטקסט שירד מגיטהאב
-    if string.find(allKeysRaw, trim(inputKey)) then
-        print("[3] Key is VALID! Opening Hub...")
-        return true
-    else
-        warn("[ERROR] Key not found!")
-        KeyBtn.Text = "INVALID KEY"; task.wait(2); KeyBtn.Text = "LOGIN / כניסה"; KeyBtn.Active = true; return false
-    end
-            print("[7] Success! Key deleted from GitHub. Hub starting...")
-            return true
-        else
-            warn("[ERROR] GitHub API (PUT) failed. Status: " .. update.StatusCode)
-            warn("Response Body: " .. update.Body)
-            KeyBtn.Text = "SYNC ERROR"; task.wait(2); KeyBtn.Text = "LOGIN / כניסה"; KeyBtn.Active = true; return false
-        end
-    else
-        warn("[ERROR] Key '" .. inputKey .. "' not found in the list.")
-        KeyBtn.Text = "INVALID KEY"; task.wait(2); KeyBtn.Text = "LOGIN / כניסה"; KeyBtn.Active = true; return false
-    end
-end
-
---// פונקציית ה-Hub המקורית שלך
+--// פונקציית ה-Hub המקורית
 function StartHub()
     local Settings = {
         Theme = { Gold = Color3.fromRGB(255, 215, 0), Dark = Color3.fromRGB(10, 10, 10), Box = Color3.fromRGB(18, 18, 18), Text = Color3.fromRGB(255, 255, 255) },
@@ -161,7 +116,6 @@ function StartHub()
 
     local Tab_Farm = CreateTab("Farming", "חווה"); local Tab_Main = CreateTab("Main", "ראשי"); local Tab_Sett = CreateTab("Settings", "הגדרות"); local Tab_Cred = CreateTab("Credits", "קרדיטים")
 
-    -- Components
     local function CreateSlider(parent, title, heb, min, max, default, callback, toggleCallback, toggleName, isDecimal)
         local f = Instance.new("Frame", parent); f.Size = UDim2.new(0.95,0,0,75); f.BackgroundColor3 = Settings.Theme.Box; Library:Corner(f, 8); Library:AddGlow(f, Color3.fromRGB(40,40,40))
         local l = Instance.new("TextLabel", f); l.Size = UDim2.new(0.7,0,0,25); l.Position = UDim2.new(0,10,0,8); l.Text = title .. " : " .. default; l.TextColor3=Color3.new(1,1,1); l.Font=Enum.Font.GothamBold; l.TextSize=14; l.TextXAlignment=Enum.TextXAlignment.Left; l.BackgroundTransparency=1
@@ -185,12 +139,10 @@ function StartHub()
         f.MouseButton1Click:Connect(function() k.Text="..."; local i=UIS.InputBegan:Wait(); if i.UserInputType==Enum.UserInputType.Keyboard then k.Text=i.KeyCode.Name; callback(i.KeyCode) end end); return f
     end
 
-    -- Farm & Logic
     local function UltraSafeDisable() local char = LocalPlayer.Character; if char then for _, part in pairs(char:GetChildren()) do if part:IsA("BasePart") then part.CanTouch = false end end; local region = Region3.new(char.PrimaryPart.Position - Vector3.new(30,30,30), char.PrimaryPart.Position + Vector3.new(30,30,30)); local objects = workspace:FindPartsInRegion3(region, nil, 200); for _, part in pairs(objects) do local n = part.Name:lower(); if n:find("door") or n:find("portal") or n:find("tele") or n:find("minigame") then part.CanTouch = false; pcall(function() if part:FindFirstChild("TouchInterest") then part.TouchInterest:Destroy() end end) end end end end
     local function ToggleFarm(v) Settings.Farming = v; if v then task.spawn(function() while Settings.Farming do local drops = Workspace:FindFirstChild("StormDrops"); local target = nil; local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart"); if hrp and drops then for _, vk in pairs(drops:GetChildren()) do if vk:IsA("BasePart") and not FarmBlacklist[vk] then target = vk break end end end; if hrp and target then local tween = TweenService:Create(hrp, TweenInfo.new((hrp.Position - target.Position).Magnitude / Settings.FarmSpeed, Enum.EasingStyle.Linear), {CFrame = target.CFrame}); tween:Play(); local start = tick(); while Settings.Farming and target.Parent and (tick() - start) < 2 do task.wait(0.1) end; if target.Parent then tween:Cancel(); FarmBlacklist[target] = true end else task.wait(0.5) end; task.wait() end end) end end
     local function ToggleFly(v) Settings.Fly.Enabled = v; local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart"); if v then local bv = Instance.new("BodyVelocity",hrp); bv.Velocity=Vector3.zero; bv.MaxForce=Vector3.new(1e9,1e9,1e9); bv.Name="F_V"; local bg = Instance.new("BodyGyro",hrp); bg.CFrame=hrp.CFrame; bg.MaxTorque=Vector3.new(1e9,1e9,1e9); bg.Name="F_G"; task.spawn(function() while Settings.Fly.Enabled do local cam = workspace.CurrentCamera; local d = Vector3.zero; if UIS:IsKeyDown(Enum.KeyCode.W) then d=d+cam.CFrame.LookVector end; bv.Velocity = d * Settings.Fly.Speed; bg.CFrame = cam.CFrame; RunService.Heartbeat:Wait() end; bv:Destroy(); bg:Destroy() end) end end
 
-    -- Content
     CreateBigToggle(Tab_Farm, "Auto Farm Crystals", function(v) ToggleFarm(v) end)
     CreateSlider(Tab_Main, "Walk Speed", "מהירות", 16, 250, 16, function(v) Settings.Speed.Value = v end, function(t) Settings.Speed.Enabled = t end)
     CreateSlider(Tab_Main, "Fly Speed", "תעופה", 20, 300, 50, function(v) Settings.Fly.Speed = v end, function(t) ToggleFly(t) end)
@@ -201,7 +153,44 @@ function StartHub()
     RunService.RenderStepped:Connect(function() if Settings.Speed.Enabled and LocalPlayer.Character:FindFirstChild("Humanoid") then LocalPlayer.Character.Humanoid.WalkSpeed = Settings.Speed.Value end end)
 end
 
---// לוגיקת לחיצה על Login
+--// פונקציית אימות ומחיקה סופית
+local function AuthenticateAndDestroy(inputKey)
+    inputKey = trim(inputKey)
+    KeyBtn.Text = "CHECKING..."; KeyBtn.Active = false
+    print("--- [DEBUG] Starting Authentication ---")
+    
+    local success, allKeysRaw = pcall(function() return game:HttpGet(RAW_URL .. "?t=" .. tick()) end)
+    if not success or not allKeysRaw then 
+        warn("[ERROR] Failed to connect to GitHub.")
+        KeyBtn.Text = "CONN ERROR"; task.wait(2); KeyBtn.Text = "LOGIN / כניסה"; KeyBtn.Active = true; return false 
+    end
+    
+    print("[DEBUG] Keys fetched successfully.")
+    local keyList = {}
+    for key in allKeysRaw:gmatch("[^\r\n]+") do table.insert(keyList, trim(key)) end
+    local foundIndex = table.find(keyList, inputKey)
+    
+    if foundIndex then
+        print("[DEBUG] Key found. Deleting from GitHub...")
+        table.remove(keyList, foundIndex)
+        local newContent = table.concat(keyList, "\n")
+        
+        local shaRequest = HttpService:RequestAsync({ Url = API_URL, Method = "GET", Headers = { ["Authorization"] = "Bearer " .. GH_TOKEN } })
+        if shaRequest.Success then
+            local fileData = HttpService:JSONDecode(shaRequest.Body)
+            local update = HttpService:RequestAsync({
+                Url = API_URL, Method = "PUT",
+                Headers = { ["Authorization"] = "Bearer " .. GH_TOKEN, ["Content-Type"] = "application/json" },
+                Body = HttpService:JSONEncode({ message = "Key Used", content = base64encode(newContent), sha = fileData.sha })
+            })
+            if update.Success then print("[DEBUG] Key destroyed. Access granted."); return true end
+        end
+        warn("[ERROR] Sync failed."); KeyBtn.Text = "SYNC ERROR"; task.wait(2); KeyBtn.Text = "LOGIN / כניסה"; KeyBtn.Active = true; return false
+    else
+        warn("[ERROR] Key not valid."); KeyBtn.Text = "INVALID KEY"; task.wait(2); KeyBtn.Text = "LOGIN / כניסה"; KeyBtn.Active = true; return false
+    end
+end
+
 KeyBtn.MouseButton1Click:Connect(function()
     if AuthenticateAndDestroy(KeyInput.Text) then
         Lib:Tween(KeyFrame, {Size = UDim2.new(0,0,0,0), Position = UDim2.new(0.5,0,0.5,0)}, 0.4, Enum.EasingStyle.Back)
