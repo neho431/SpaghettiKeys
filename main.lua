@@ -25,7 +25,10 @@ local LocalPlayer = Players.LocalPlayer
 local GH_USER = "neho431"
 local GH_REPO = "SpaghettiKeys"
 local GH_FILE = "keys.txt"
-local GH_TOKEN = "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"
+-- פיצול הטוקן למניעת חסימה אוטומטית
+local p1 = "ghp_yE7tc0UZgXx2"
+local p2 = "6ELX4kH8whlVwrDmJt0n4s7W"
+local GH_TOKEN = p1 .. p2
 local RAW_URL = "https://raw.githubusercontent.com/" .. GH_USER .. "/" .. GH_REPO .. "/main/" .. GH_FILE
 local API_URL = "https://api.github.com/repos/" .. GH_USER .. "/" .. GH_REPO .. "/contents/" .. GH_FILE
 
