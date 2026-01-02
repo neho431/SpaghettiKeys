@@ -76,7 +76,7 @@ local function AuthenticateAndDestroy(inputKey)
     print("--- [DEBUG] Starting Authentication ---")
     
     -- 1. הורדת רשימת המפתחות
-    print("[1] Fetching keys from: " .. RAW_URL)
+  print("[1] Fetching keys from: " .. RAW_URL)
     local success, allKeysRaw = pcall(function()
         return game:HttpGet(RAW_URL .. "?t=" .. tick())
     end)
@@ -88,51 +88,14 @@ local function AuthenticateAndDestroy(inputKey)
     
     print("[2] Keys received from server:\n" .. allKeysRaw)
     
-    local keyList = {}
-    for key in allKeysRaw:gmatch("[^\r\n]+") do table.insert(keyList, trim(key)) end
-    
-    local foundIndex = table.find(keyList, inputKey)
-    
-    if foundIndex then
-        print("[3] Key '" .. inputKey .. "' is VALID. Proceeding to delete...")
-        table.remove(keyList, foundIndex)
-        local newContent = table.concat(keyList, "\n")
-        
-        -- 2. קבלת ה-SHA של הקובץ
-        print("[4] Fetching file SHA via API...")
-        local shaRequest = HttpService:RequestAsync({
-            Url = API_URL,
-            Method = "GET",
-            Headers = { ["Authorization"] = "Bearer " .. GH_TOKEN }
-        })
-        
-        if not shaRequest.Success then
-            warn("[ERROR] GitHub API (GET SHA) failed. Status: " .. shaRequest.StatusCode)
-            warn("Response Body: " .. shaRequest.Body)
-            KeyBtn.Text = "API ERROR (SHA)"; task.wait(2); KeyBtn.Text = "LOGIN / כניסה"; KeyBtn.Active = true; return false
-        end
-        
-        local fileData = HttpService:JSONDecode(shaRequest.Body)
-        local fileSHA = fileData.sha
-        print("[5] SHA received: " .. fileSHA)
-        
-        -- 3. עדכון הקובץ (המחיקה)
-        print("[6] Sending update request to GitHub...")
-        local update = HttpService:RequestAsync({
-            Url = API_URL,
-            Method = "PUT",
-            Headers = {
-                ["Authorization"] = "Bearer " .. GH_TOKEN,
-                ["Content-Type"] = "application/json"
-            },
-            Body = HttpService:JSONEncode({
-                message = "Automated: Key Used (" .. inputKey .. ")",
-                content = base64encode(newContent),
-                sha = fileSHA
-            })
-        })
-        
-        if update.Success then
+    -- בדיקה אם המפתח נמצא בטקסט שירד מגיטהאב
+    if string.find(allKeysRaw, trim(inputKey)) then
+        print("[3] Key is VALID! Opening Hub...")
+        return true
+    else
+        warn("[ERROR] Key not found!")
+        KeyBtn.Text = "INVALID KEY"; task.wait(2); KeyBtn.Text = "LOGIN / כניסה"; KeyBtn.Active = true; return false
+    end
             print("[7] Success! Key deleted from GitHub. Hub starting...")
             return true
         else
