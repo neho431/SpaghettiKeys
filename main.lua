@@ -1,7 +1,7 @@
 --[[
-    Spaghetti Mafia Hub v1 (ULTRA PROTECTION - ANTI SERVER HOP)
+    Spaghetti Mafia Hub v1 (ULTRA FINAL STABLE)
     Branding: "עולם הכיף"
-    Updates: TeleportService Block, Deep Portal Wipe, 2s Crystal Skip, Anti-AFK.
+    Updates: Logic Fix (Only runs on Toggle), Anti-Server Hop, 2s Crystal Skip.
 ]]
 
 --// ניקוי סקריפטים ישנים
@@ -16,7 +16,7 @@ local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local VirtualUser = game:GetService("VirtualUser")
-local TeleportService = game:GetService("TeleportService") -- לצורך חסימת העברת שרת
+local TeleportService = game:GetService("TeleportService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -42,20 +42,19 @@ local Settings = {
     Scale = 1
 }
 
---// מערכת Anti-AFK
+--// Anti-AFK (פועל תמיד ברקע)
 LocalPlayer.Idled:Connect(function()
     VirtualUser:CaptureController()
     VirtualUser:ClickButton2(Vector2.new())
 end)
 
---// מערכת הגנה מהעברת שרת (Anti-Teleport)
--- חוסם ניסיונות של המשחק להשתמש ב-TeleportService להעברת שרת
+--// חסימת העברת שרת (Teleport Protection)
 local oldTeleport
-if hookmetamethod then -- בדיקה אם האקסקיוטור תומך ב-Hooking
+if hookmetamethod then
     oldTeleport = hookmetamethod(game, "__namecall", function(self, ...)
         local method = getnamecallmethod()
         if self == TeleportService and (method == "Teleport" or method == "TeleportToPlaceInstance" or method == "TeleportToSpawnByName") then
-            return nil -- חסימת הפעולה
+            return nil
         end
         return oldTeleport(self, ...)
     end)
@@ -64,7 +63,6 @@ end
 local VisualToggles = {}
 local FarmConnection = nil
 local FarmBlacklist = {}
-local LastFullScan = 0
 
 --// ספרית עיצוב
 local Library = {}
@@ -75,21 +73,16 @@ function Library:Tween(obj, props, time, style)
 end
 
 function Library:AddGlow(obj, color)
-    local s = Instance.new("UIStroke", obj)
-    s.Color = color or Settings.Theme.Gold
-    s.Thickness = 1; s.Transparency = 0.6; s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    local s = Instance.new("UIStroke", obj); s.Color = color or Settings.Theme.Gold; s.Thickness = 1; s.Transparency = 0.6; s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     return s
 end
 
 function Library:AddTextGlow(obj, color)
-    local s = Instance.new("UIStroke", obj)
-    s.Color = color or Settings.Theme.Gold
-    s.Thickness = 0.6; s.Transparency = 0.7; s.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+    local s = Instance.new("UIStroke", obj); s.Color = color or Settings.Theme.Gold; s.Thickness = 0.6; s.Transparency = 0.7; s.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
 end
 
 function Library:Corner(obj, r)
-    local c = Instance.new("UICorner", obj)
-    c.CornerRadius = UDim.new(0, r or 6)
+    local c = Instance.new("UICorner", obj); c.CornerRadius = UDim.new(0, r or 6)
     return c
 end
 
@@ -112,7 +105,7 @@ function Library:MakeDraggable(obj)
     end)
 end
 
---// ממשק
+--// יצירת GUI
 local ScreenGui = Instance.new("ScreenGui"); ScreenGui.Name = "SpaghettiHub_Rel"; ScreenGui.Parent = CoreGui; ScreenGui.ResetOnSpawn = false
 
 local MiniPasta = Instance.new("TextButton", ScreenGui); MiniPasta.Size = UDim2.new(0, 0, 0, 0); MiniPasta.Position = UDim2.new(0.1, 0, 0.1, 0); MiniPasta.BackgroundColor3 = Settings.Theme.Dark; MiniPasta.Text = "🍝"; MiniPasta.TextSize = 35; MiniPasta.Visible = false; Library:Corner(MiniPasta, 30); Library:AddGlow(MiniPasta); Library:MakeDraggable(MiniPasta)
@@ -215,7 +208,7 @@ local function CreateSquareBind(parent, id, title, heb, default, callback)
     return f
 end
 
---// לוגיקה חסימת שיגורים ופורטלים אגרסיבית
+--// לוגיקה חווה ואנטי-שיגור (רק כשהכפתור דלוק)
 local function GetClosestTarget()
     local drops = Workspace:FindFirstChild("StormDrops")
     if not drops then return nil end
@@ -226,22 +219,17 @@ local function GetClosestTarget()
     return closest
 end
 
--- מנטרל כל דבר שקשור להעברת שרת או שיגור
 local function UltraSafeDisable()
     local char = LocalPlayer.Character; local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-    for _, part in pairs(char:GetChildren()) do if part:IsA("BasePart") then part.CanTouch = false end end -- הדמות לא תעורר אירועי מגע
-    
-    local region = Region3.new(hrp.Position - Vector3.new(40,40,40), hrp.Position + Vector3.new(40,40,40))
-    local objects = workspace:FindPartsInRegion3(region, nil, 250)
+    for _, part in pairs(char:GetChildren()) do if part:IsA("BasePart") then part.CanTouch = false end end
+    local region = Region3.new(hrp.Position - Vector3.new(30,30,30), hrp.Position + Vector3.new(30,30,30))
+    local objects = workspace:FindPartsInRegion3(region, nil, 200)
     for _, part in pairs(objects) do
         local n = part.Name:lower()
-        if n:find("door") or n:find("portal") or n:find("tele") or n:find("gate") or n:find("enter") or n:find("selection") or n:find("warp") or n:find("server") or n:find("lobby") then
+        if n:find("door") or n:find("portal") or n:find("tele") or n:find("gate") or n:find("enter") or n:find("selection") or n:find("lobby") or n:find("zone") or n:find("minigame") then
             part.CanTouch = false
-            pcall(function() 
-                if part:FindFirstChild("TouchInterest") then part.TouchInterest:Destroy() end 
-                for _, p in pairs(part:GetDescendants()) do if p:IsA("ProximityPrompt") then p.Enabled = false end end
-            end)
+            pcall(function() if part:FindFirstChild("TouchInterest") then part.TouchInterest:Destroy() end end)
         end
     end
 end
@@ -250,7 +238,7 @@ local function EnableNoclip(bool)
     if bool then
         if not FarmConnection then
             FarmConnection = RunService.Stepped:Connect(function()
-                if LocalPlayer.Character then
+                if LocalPlayer.Character and Settings.Farming then
                     for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
                     local hum = LocalPlayer.Character:FindFirstChild("Humanoid"); if hum then hum.Sit = false; hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false) end
                     UltraSafeDisable() 
@@ -259,7 +247,10 @@ local function EnableNoclip(bool)
         end
     else
         if FarmConnection then FarmConnection:Disconnect(); FarmConnection = nil end
-        if LocalPlayer.Character then for _, part in pairs(LocalPlayer.Character:GetChildren()) do if part:IsA("BasePart") then part.CanTouch = true end end; if LocalPlayer.Character:FindFirstChild("Humanoid") then LocalPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true) end end
+        if LocalPlayer.Character then 
+            for _, part in pairs(LocalPlayer.Character:GetChildren()) do if part:IsA("BasePart") then part.CanTouch = true end end
+            if LocalPlayer.Character:FindFirstChild("Humanoid") then LocalPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true) end 
+        end
     end
 end
 
@@ -269,7 +260,7 @@ local function ToggleFarm(v)
         task.spawn(function()
             while Settings.Farming do
                 local char = LocalPlayer.Character; local hrp = char and char:FindFirstChild("HumanoidRootPart"); local target = GetClosestTarget()
-                if char and hrp and target then
+                if char and hrp and target and Settings.Farming then
                     local distance = (hrp.Position - target.Position).Magnitude; local info = TweenInfo.new(distance / Settings.FarmSpeed, Enum.EasingStyle.Linear); local tween = TweenService:Create(hrp, info, {CFrame = target.CFrame}); tween:Play()
                     local start = tick(); while Settings.Farming and target.Parent and (tick() - start) < 2 do task.wait(0.1) if (hrp.Position - target.Position).Magnitude < 3 then task.wait(0.3) if target.Parent then break end end end
                     if target.Parent then tween:Cancel(); FarmBlacklist[target] = true end
@@ -280,6 +271,7 @@ local function ToggleFarm(v)
     end
 end
 
+--// Fly
 local function ToggleFly(v)
     Settings.Fly.Enabled = v; local char = LocalPlayer.Character; if not char then return end; local hrp = char:FindFirstChild("HumanoidRootPart"); local hum = char:FindFirstChild("Humanoid")
     if v then
@@ -296,8 +288,8 @@ local function ToggleFly(v)
     else if hrp:FindFirstChild("F_V") then hrp.F_V:Destroy() end; if hrp:FindFirstChild("F_G") then hrp.F_G:Destroy() end; hum.PlatformStand=false end
 end
 
---// UI Tabs Setup
-CreateBigToggle(Tab_Farm, "Auto Farm Crystals", "חווה אוטומטית לקריסטלים (Anti-Teleport)", function(v) ToggleFarm(v) end, "Farm")
+--// Setup Tabs
+CreateBigToggle(Tab_Farm, "Auto Farm Crystals", "חווה אוטומטית לקריסטלים (Anti-Stuck 2s)", function(v) ToggleFarm(v) end, "Farm")
 CreateSlider(Tab_Main, "Walk Speed", "מהירות הליכה", 16, 250, 16, function(v) Settings.Speed.Value = v end, function(t) Settings.Speed.Enabled = t end, "Speed")
 CreateSlider(Tab_Main, "Fly Speed", "מהירות תעופה", 20, 300, 50, function(v) Settings.Fly.Speed = v end, function(t) ToggleFly(t) end, "Fly")
 local BindCont = Instance.new("Frame", Tab_Main); BindCont.Size = UDim2.new(0.95,0,0,80); BindCont.BackgroundTransparency = 1; CreateSquareBind(BindCont, 1, "FLY", "תעופה", Settings.Keys.Fly, function(k) Settings.Keys.Fly = k end); CreateSquareBind(BindCont, 2, "SPEED", "מהירות", Settings.Keys.Speed, function(k) Settings.Keys.Speed = k end)
@@ -312,7 +304,7 @@ local function AddCr(n, id)
 end
 AddCr("nx3ho", 1323665023); AddCr("8adshot3", 3370067928)
 
---// Key System Frame
+--// Key Frame
 local KeyFrame = Instance.new("Frame", ScreenGui); KeyFrame.Size = UDim2.new(0, 400, 0, 260); KeyFrame.Position = UDim2.new(0.5, -200, 0.5, -130); KeyFrame.BackgroundColor3 = Settings.Theme.Dark; Library:Corner(KeyFrame, 10); Library:AddGlow(KeyFrame); Library:MakeDraggable(KeyFrame)
 local KeyTitle = Instance.new("TextLabel", KeyFrame); KeyTitle.Size = UDim2.new(1,0,0,40); KeyTitle.Position = UDim2.new(0,0,0,15); KeyTitle.BackgroundTransparency = 1; KeyTitle.Text = "SPAGHETTI MAFIA HUB <font color='#FFD700'>v1</font>"; KeyTitle.RichText = true; KeyTitle.Font = Enum.Font.GothamBlack; KeyTitle.TextSize = 24; KeyTitle.TextColor3 = Color3.new(1,1,1); Library:AddTextGlow(KeyTitle)
 local KeySub = Instance.new("TextLabel", KeyFrame); KeySub.Size = UDim2.new(1,0,0,20); KeySub.Position = UDim2.new(0,0,0,45); KeySub.BackgroundTransparency = 1; KeySub.Text = "עולם הכיף"; KeySub.Font = Enum.Font.GothamBold; KeySub.TextSize = 16; KeySub.TextColor3 = Settings.Theme.Gold
@@ -325,7 +317,7 @@ KeyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
---// Binds & Update Loops
+--// Binds & Update
 UIS.InputBegan:Connect(function(i,g)
     if not g then
         if i.KeyCode == Settings.Keys.Menu then 
