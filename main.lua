@@ -1,12 +1,10 @@
 --[[
-    Spaghetti Mafia Hub v4 (FINAL FIXED VERSION)
+    Spaghetti Mafia Hub v5 (FINAL FIX)
     Updates:
-    - UI Cleanup: Removed artifacts/lines above tabs.
-    - Winter Tab: Real Snowflake particles (Images).
-    - Speed System: Auto-reset to 16 on disable/keybind.
-    - GUI Scale: Smooth Tweening transition.
-    - Loading Screen: Extended time, English text, cleanup.
-    - Optimization: Performance improvements.
+    - REMOVED: The annoying floating line in Sidebar (Deleted ActiveLine).
+    - RESTORED & IMPROVED: Snow Effect (Real Snowflake Images + Rotation) in Loading & Winter Tab.
+    - PRESERVED: All logic (Farm, WalkSpeed, Settings).
+    - UI: Cleaner look, smooth animations.
 ]]
 
 local Players = game:GetService("Players")
@@ -56,16 +54,14 @@ local Settings = {
         Box = Color3.fromRGB(20, 20, 20),
         Text = Color3.fromRGB(255, 255, 255),
         
-        -- Winter Colors
         IceBlue = Color3.fromRGB(100, 220, 255),
         IceDark = Color3.fromRGB(10, 25, 45),
         
-        -- Resources
         ShardBlue = Color3.fromRGB(50, 180, 255),
         CrystalRed = Color3.fromRGB(255, 70, 70),
         
-        -- Snowflake ID
-        SnowTexture = "rbxassetid://13860558153" -- פתית שלג אמיתי
+        -- תמונת פתית שלג איכותית
+        SnowTexture = "rbxassetid://13860558153"
     },
     Keys = { Menu = Enum.KeyCode.RightControl, Fly = Enum.KeyCode.E, Speed = Enum.KeyCode.F },
     Fly = { Enabled = false, Speed = 50 },
@@ -92,31 +88,35 @@ function Library:MakeDraggable(obj)
     RunService.RenderStepped:Connect(function() if dragging and dragInput then local delta = dragInput.Position - dragStart; obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
 end
 
--- פונקציית שלג משופרת (Snowflakes)
-local function SpawnSnow(parent, speedMin, speedMax)
+--// פונקציית שלג משופרת (Snowflakes)
+local function SpawnSnow(parent)
     local flake = Instance.new("ImageLabel", parent)
-    local size = math.random(10, 25) -- גודל מגוון
+    local size = math.random(14, 30) -- גודל משתנה
     flake.Size = UDim2.new(0, size, 0, size)
-    flake.Position = UDim2.new(math.random(1, 100)/100, 0, -0.15, 0)
+    -- מיקום התחלתי מעל המסך כדי למנוע "פופים"
+    flake.Position = UDim2.new(math.random(1, 100)/100, 0, -0.2, 0)
     flake.BackgroundTransparency = 1
-    flake.Image = Settings.Theme.SnowTexture -- שימוש בטקסטורה
-    flake.ImageTransparency = math.random(1, 5) / 10
+    flake.Image = Settings.Theme.SnowTexture
+    flake.ImageTransparency = math.random(2, 6) / 10
     flake.ImageColor3 = Color3.fromRGB(240, 250, 255)
     flake.Rotation = math.random(0, 360)
+    flake.ZIndex = 2
     
-    local sway = math.random(-50, 50) -- תנועה אופקית רחבה יותר
-    local duration = math.random(speedMin, speedMax)
+    local duration = math.random(4, 8) -- מהירות נפילה משתנה
+    local sway = math.random(-40, 40) -- תזוזה לצדדים
+    local targetRot = flake.Rotation + math.random(90, 200) -- סיבוב תוך כדי נפילה
+
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(flake, tweenInfo, {
+        Position = UDim2.new(flake.Position.X.Scale, sway, 1.2, 0), -- נופל עד למטה
+        Rotation = targetRot
+    })
     
-    -- Tween לתנועה וסיבוב
-    TweenService:Create(flake, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
-        Position = UDim2.new(flake.Position.X.Scale, sway, 1.1, 0),
-        Rotation = flake.Rotation + math.random(90, 180) -- סיבוב תוך כדי נפילה
-    }):Play()
-    
-    Debris:AddItem(flake, duration + 1)
+    tween:Play()
+    Debris:AddItem(flake, duration + 0.5)
 end
 
---// 4. מסך טעינה (משופר)
+--// 4. מסך טעינה (משופר עם שלג)
 local LoadGui = Instance.new("ScreenGui"); LoadGui.Name = "SpaghettiLoading"; LoadGui.Parent = CoreGui
 local LoadBox = Instance.new("Frame", LoadGui)
 LoadBox.Size = UDim2.new(0, 240, 0, 170)
@@ -127,8 +127,6 @@ LoadBox.BorderSizePixel = 0
 Library:Corner(LoadBox, 20)
 Library:Gradient(LoadBox, Color3.fromRGB(15, 20, 30), Color3.fromRGB(25, 40, 60), 45)
 Library:AddGlow(LoadBox, Settings.Theme.Gold)
-
--- הוסר SnowPile (הקו הלבן) כפי שביקשת
 
 local PastaIcon = Instance.new("TextLabel", LoadBox)
 PastaIcon.Size = UDim2.new(1, 0, 0.5, 0); PastaIcon.Position = UDim2.new(0,0,0.1,0)
@@ -146,16 +144,15 @@ SubLoad.Size = UDim2.new(1, 0, 0.2, 0); SubLoad.Position = UDim2.new(0, 0, 0.7, 
 SubLoad.BackgroundTransparency = 1; SubLoad.Text = "Loading..."; SubLoad.Font = Enum.Font.Gotham; SubLoad.TextColor3 = Color3.new(1,1,1); SubLoad.TextSize = 14
 SubLoad.ZIndex = 5
 
--- אנימציית שלג בטעינה
+-- לולאת שלג למסך הטעינה
 task.spawn(function()
     while LoadBox.Parent do
-        SpawnSnow(LoadBox, 2, 4)
-        task.wait(0.15)
+        SpawnSnow(LoadBox)
+        task.wait(0.2) -- קצב יצירת שלג
     end
 end)
 
--- זמן טעינה ארוך יותר (5 שניות)
-task.wait(5)
+task.wait(4.5) -- זמן טעינה
 LoadGui:Destroy()
 
 --// 5. GUI ראשי
@@ -185,39 +182,31 @@ local CloseBtn = Instance.new("TextButton", TopBar); CloseBtn.Size = UDim2.new(0
 CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; MiniPasta.Visible = true; Library:Tween(MiniPasta, {Size = UDim2.new(0, 60, 0, 60)}, 0.4, Enum.EasingStyle.Elastic) end)
 MiniPasta.MouseButton1Click:Connect(function() MiniPasta.Visible = false; MainFrame.Visible = true; Library:Tween(MainFrame, {Size = UDim2.new(0, 620, 0, 420)}, 0.4, Enum.EasingStyle.Back) end)
 
---// Sidebar - ניקוי קו מפריד
+--// Sidebar
 local Sidebar = Instance.new("Frame", MainFrame)
 Sidebar.Size = UDim2.new(0, 160, 1, -60)
 Sidebar.Position = UDim2.new(0,0,0,60)
 Sidebar.BackgroundColor3 = Settings.Theme.Box
-Sidebar.BorderSizePixel = 0 -- חשוב: מחיקת גבולות
+Sidebar.BorderSizePixel = 0 
 Sidebar.ZIndex = 2
 Library:Corner(Sidebar, 12)
 
 local SideList = Instance.new("UIListLayout", Sidebar); SideList.Padding = UDim.new(0,8); SideList.HorizontalAlignment = Enum.HorizontalAlignment.Center; SideList.SortOrder = Enum.SortOrder.LayoutOrder
 local SidePad = Instance.new("UIPadding", Sidebar); SidePad.PaddingTop = UDim.new(0,20)
 
-local ActiveLine = Instance.new("Frame", Sidebar)
-ActiveLine.Size = UDim2.new(0, 4, 0, 45)
-ActiveLine.Position = UDim2.new(0, 0, 0, 0)
-ActiveLine.BackgroundColor3 = Settings.Theme.Gold
-ActiveLine.BorderSizePixel = 0
-ActiveLine.ZIndex = 5
-ActiveLine.Visible = false
-Library:Corner(ActiveLine, 2)
+-- חשוב: ה-ActiveLine נמחק מכאן כפי שביקשת! הקו המרחף לא יופיע יותר.
 
 local Container = Instance.new("Frame", MainFrame); Container.Size = UDim2.new(1, -170, 1, -70); Container.Position = UDim2.new(0, 170, 0, 65); Container.BackgroundTransparency = 1
 
 local currentTab = nil
 
--- פונקציית יצירת טאב (כולל שינוי צבע ל-Winter Event)
+-- פונקציית יצירת טאב (ללא הקו)
 local function CreateTab(name, heb, order, isWinter)
     local btn = Instance.new("TextButton", Sidebar)
     btn.Size = UDim2.new(0.9,0,0,45)
     btn.BackgroundColor3 = Settings.Theme.Dark
     btn.Text = "   " .. name .. "\n   <font size='12' color='#8899AA'>"..heb.."</font>"
     btn.RichText = true
-    -- צבע טקסט התחלתי: אם זה Winter הוא מקבל גוון כחלחל, אחרת אפור
     btn.TextColor3 = isWinter and Color3.fromRGB(150, 180, 200) or Color3.fromRGB(150,150,150)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 15
@@ -247,9 +236,7 @@ local function CreateTab(name, heb, order, isWinter)
         Library:Tween(btn, {BackgroundColor3 = activeBG, TextColor3 = activeColor})
         page.Visible = true
         
-        ActiveLine.Visible = true
-        ActiveLine.BackgroundColor3 = activeColor
-        Library:Tween(ActiveLine, {Position = UDim2.new(0, 0, 0, btn.AbsolutePosition.Y - Sidebar.AbsolutePosition.Y)}, 0.3)
+        -- לא מפעילים כאן את ActiveLine כי הוא נמחק
     end)
     
     if order == 1 then 
@@ -259,13 +246,6 @@ local function CreateTab(name, heb, order, isWinter)
         
         Library:Tween(btn, {BackgroundColor3 = activeBG, TextColor3 = activeColor})
         page.Visible = true 
-        
-        task.spawn(function()
-            task.wait(0.1)
-            ActiveLine.Visible = true
-            ActiveLine.BackgroundColor3 = activeColor
-            ActiveLine.Position = UDim2.new(0, 0, 0, btn.AbsolutePosition.Y - Sidebar.AbsolutePosition.Y)
-        end)
     end
     
     return page
@@ -357,7 +337,7 @@ local function ToggleFly(v)
     else if hrp:FindFirstChild("F_V") then hrp.F_V:Destroy() end; if hrp:FindFirstChild("F_G") then hrp.F_G:Destroy() end; hum.PlatformStand=false end
 end
 
---// 7. Event Tab
+--// 7. Event Tab (עם שלג מוחזר)
 local EventBackground = Instance.new("Frame", Tab_Event_Page)
 EventBackground.Size = UDim2.new(1,0,1,0)
 EventBackground.ZIndex = 0
@@ -369,10 +349,11 @@ EventSnowContainer.BackgroundTransparency = 1
 EventSnowContainer.ClipsDescendants = true
 EventSnowContainer.ZIndex = 1
 
+-- החזרת לולאת השלג לטאב ה-Event
 task.spawn(function()
     while Tab_Event_Page.Parent do
-        SpawnSnow(EventSnowContainer, 5, 8) 
-        task.wait(0.25)
+        SpawnSnow(EventSnowContainer) 
+        task.wait(0.3)
     end
 end)
 
@@ -552,11 +533,10 @@ local function CreateSquareBind(parent, id, title, heb, default, callback)
     return f
 end
 
--- תיקון WalkSpeed: המינימום 1, איפוס ל-16 בכיבוי
 CreateSlider(Tab_Main_Page, "Walk Speed", "מהירות הליכה", 1, 250, 16, function(v) Settings.Speed.Value = v end, function(t) 
     Settings.Speed.Enabled = t
     if not t and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = 16 -- איפוס מיידי
+        LocalPlayer.Character.Humanoid.WalkSpeed = 16 
     end
 end, "Speed")
 
@@ -565,7 +545,6 @@ local BindCont = Instance.new("Frame", Tab_Main_Page); BindCont.Size = UDim2.new
 
 CreateSlider(Tab_Settings_Page, "FOV", "שדה ראייה", 70, 120, 70, function(v) Camera.FieldOfView = v end)
 
--- תיקון GUI Scale: שימוש ב-Tween
 CreateSlider(Tab_Settings_Page, "GUI Scale", "גודל ממשק", 5, 15, 10, function(v) 
     local scale = v / 10
     Library:Tween(MainScale, {Scale = scale}, 0.5, Enum.EasingStyle.Quart)
@@ -599,7 +578,6 @@ UIS.InputBegan:Connect(function(i,g)
         if i.KeyCode == Settings.Keys.Menu then if MainFrame.Visible then Library:Tween(MainFrame, {Size = UDim2.new(0,0,0,0)}, 0.3, Enum.EasingStyle.Back); task.wait(0.3); MainFrame.Visible = false else MainFrame.Visible = true; MainFrame.Size = UDim2.new(0,0,0,0); Library:Tween(MainFrame, {Size = UDim2.new(0, 620, 0, 420)}, 0.5, Enum.EasingStyle.Elastic) end end
         if i.KeyCode == Settings.Keys.Fly then Settings.Fly.Enabled = not Settings.Fly.Enabled; ToggleFly(Settings.Fly.Enabled); if VisualToggles["Fly"] then VisualToggles["Fly"](Settings.Fly.Enabled) end end
         
-        -- עדכון כפתור המהירות בקיצור מקלדת + איפוס
         if i.KeyCode == Settings.Keys.Speed then 
             Settings.Speed.Enabled = not Settings.Speed.Enabled
             if not Settings.Speed.Enabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
@@ -614,4 +592,4 @@ RunService.RenderStepped:Connect(function()
     if Settings.Speed.Enabled and LocalPlayer.Character then local h = LocalPlayer.Character:FindFirstChild("Humanoid"); if h then h.WalkSpeed = Settings.Speed.Value end end
 end)
 
-print("[SYSTEM] Spaghetti Mafia Hub v4 Loaded")
+print("[SYSTEM] Spaghetti Mafia Hub v5 Loaded")
