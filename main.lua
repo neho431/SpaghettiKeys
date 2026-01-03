@@ -1,10 +1,10 @@
 --[[
-    Spaghetti Mafia Hub v1 (FINAL RESTORED)
+    Spaghetti Mafia Hub v1 (FIXED SNOW)
     Updates:
-    - Version Label: Reverted to v1.
-    - Snow Effect: RESTORED & ENHANCED in Loading Screen & Event Tab.
-    - UI: Clean Sidebar (No floating lines).
-    - Logic: All functionality (Farm, Speed, Settings) preserved.
+    - Version: Labeled as v1.
+    - Snow: Fixed by using reliable snowflake rendering (❄️) instead of images.
+    - Visibility: High ZIndex ensures snow is visible above backgrounds.
+    - Logic: 100% Preserved. Nothing deleted.
 ]]
 
 local Players = game:GetService("Players")
@@ -58,10 +58,7 @@ local Settings = {
         IceDark = Color3.fromRGB(10, 25, 45),
         
         ShardBlue = Color3.fromRGB(50, 180, 255),
-        CrystalRed = Color3.fromRGB(255, 70, 70),
-        
-        -- תמונת פתית שלג
-        SnowTexture = "rbxassetid://13860558153"
+        CrystalRed = Color3.fromRGB(255, 70, 70)
     },
     Keys = { Menu = Enum.KeyCode.RightControl, Fly = Enum.KeyCode.E, Speed = Enum.KeyCode.F },
     Fly = { Enabled = false, Speed = 50 },
@@ -88,23 +85,25 @@ function Library:MakeDraggable(obj)
     RunService.RenderStepped:Connect(function() if dragging and dragInput then local delta = dragInput.Position - dragStart; obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
 end
 
---// פונקציית שלג (Snowflakes) - מחוזקת
+--// פונקציית שלג (Snowflakes) - בטוחה לשימוש (TextLabel)
+-- משתמשת באימוג'י ❄️ כדי להבטיח שהשלג יופיע תמיד
 local function SpawnSnow(parent)
-    local flake = Instance.new("ImageLabel", parent)
-    local size = math.random(15, 35) -- גודל נראה לעין
-    flake.Size = UDim2.new(0, size, 0, size)
-    flake.Position = UDim2.new(math.random(1, 100)/100, 0, -0.2, 0)
+    local flake = Instance.new("TextLabel", parent)
+    flake.Text = "❄️"
     flake.BackgroundTransparency = 1
-    flake.Image = Settings.Theme.SnowTexture
-    flake.ImageTransparency = math.random(1, 4) / 10 -- שקיפות נמוכה יותר כדי שיראו טוב
-    flake.ImageColor3 = Color3.fromRGB(255, 255, 255)
-    flake.Rotation = math.random(0, 360)
-    flake.ZIndex = 10 -- ZIndex גבוה כדי שיראו מעל הרקע
+    flake.TextColor3 = Color3.fromRGB(240, 250, 255) -- לבן כחלחל
+    flake.Size = UDim2.new(0, math.random(20, 35), 0, math.random(20, 35))
+    flake.Position = UDim2.new(math.random(1, 100)/100, 0, -0.2, 0)
+    flake.ZIndex = 100 -- הכי גבוה שאפשר כדי שיראו את זה
     flake.Name = "SnowFlake"
     
-    local duration = math.random(3, 7) -- מהירות נפילה
+    -- רנדום סיבוב ושקיפות
+    flake.Rotation = math.random(0, 360)
+    flake.TextTransparency = math.random(2, 5) / 10
+
+    local duration = math.random(3, 6)
     local sway = math.random(-50, 50)
-    local targetRot = flake.Rotation + math.random(90, 200)
+    local targetRot = flake.Rotation + math.random(100, 300)
 
     TweenService:Create(flake, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
         Position = UDim2.new(flake.Position.X.Scale, sway, 1.2, 0),
@@ -114,13 +113,13 @@ local function SpawnSnow(parent)
     Debris:AddItem(flake, duration + 0.5)
 end
 
---// 4. מסך טעינה (משופר עם שלג)
+--// 4. מסך טעינה (עם שלג שעובד)
 local LoadGui = Instance.new("ScreenGui"); LoadGui.Name = "SpaghettiLoading"; LoadGui.Parent = CoreGui
 local LoadBox = Instance.new("Frame", LoadGui)
 LoadBox.Size = UDim2.new(0, 240, 0, 170)
 LoadBox.Position = UDim2.new(0.5, 0, 0.5, 0)
 LoadBox.AnchorPoint = Vector2.new(0.5, 0.5)
-LoadBox.ClipsDescendants = true
+LoadBox.ClipsDescendants = true -- שלג יראה רק בתוך הקופסה
 LoadBox.BorderSizePixel = 0
 Library:Corner(LoadBox, 20)
 Library:Gradient(LoadBox, Color3.fromRGB(15, 20, 30), Color3.fromRGB(25, 40, 60), 45)
@@ -134,7 +133,7 @@ TweenService:Create(PastaIcon, tweenInfo, {Rotation = 10, Size = UDim2.new(1.1, 
 
 local TitleLoad = Instance.new("TextLabel", LoadBox)
 TitleLoad.Size = UDim2.new(1, 0, 0.2, 0); TitleLoad.Position = UDim2.new(0, 0, 0.55, 0)
-TitleLoad.BackgroundTransparency = 1; TitleLoad.Text = "Spaghetti Mafia Hub v1"; -- חזר ל-v1
+TitleLoad.BackgroundTransparency = 1; TitleLoad.Text = "Spaghetti Mafia Hub v1"; -- טקסט v1
 TitleLoad.Font = Enum.Font.GothamBlack; TitleLoad.TextColor3 = Settings.Theme.Gold; TitleLoad.TextSize = 20
 TitleLoad.ZIndex = 15
 
@@ -147,7 +146,7 @@ SubLoad.ZIndex = 15
 task.spawn(function()
     while LoadBox.Parent do
         SpawnSnow(LoadBox)
-        task.wait(0.15) -- קצב מהיר
+        task.wait(0.15) 
     end
 end)
 
@@ -165,7 +164,7 @@ MainFrame.Size = UDim2.new(0,0,0,0); Library:Tween(MainFrame, {Size = UDim2.new(
 local MainScale = Instance.new("UIScale", MainFrame); MainScale.Scale = 1
 local TopBar = Instance.new("Frame", MainFrame); TopBar.Size = UDim2.new(1,0,0,60); TopBar.BackgroundTransparency = 1; TopBar.BorderSizePixel = 0; Library:MakeDraggable(MainFrame)
 
--- כותרת v1
+-- כותרות v1
 local MainTitle = Instance.new("TextLabel", TopBar); MainTitle.Size = UDim2.new(0,300,0,30); MainTitle.Position = UDim2.new(0,20,0,10); MainTitle.BackgroundTransparency = 1; MainTitle.Text = "SPAGHETTI <font color='#FFD700'>MAFIA</font> HUB v1"; MainTitle.RichText = true; MainTitle.Font = Enum.Font.GothamBlack; MainTitle.TextSize = 22; MainTitle.TextColor3 = Color3.new(1,1,1); MainTitle.TextXAlignment = Enum.TextXAlignment.Left
 
 local MainSub = Instance.new("TextLabel", TopBar)
@@ -182,7 +181,7 @@ local CloseBtn = Instance.new("TextButton", TopBar); CloseBtn.Size = UDim2.new(0
 CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; MiniPasta.Visible = true; Library:Tween(MiniPasta, {Size = UDim2.new(0, 60, 0, 60)}, 0.4, Enum.EasingStyle.Elastic) end)
 MiniPasta.MouseButton1Click:Connect(function() MiniPasta.Visible = false; MainFrame.Visible = true; Library:Tween(MainFrame, {Size = UDim2.new(0, 620, 0, 420)}, 0.4, Enum.EasingStyle.Back) end)
 
---// Sidebar
+--// Sidebar (ללא ActiveLine המרחף, נקי)
 local Sidebar = Instance.new("Frame", MainFrame)
 Sidebar.Size = UDim2.new(0, 160, 1, -60)
 Sidebar.Position = UDim2.new(0,0,0,60)
@@ -332,7 +331,7 @@ local function ToggleFly(v)
     else if hrp:FindFirstChild("F_V") then hrp.F_V:Destroy() end; if hrp:FindFirstChild("F_G") then hrp.F_G:Destroy() end; hum.PlatformStand=false end
 end
 
---// 7. Event Tab (עם שלג מוחזר)
+--// 7. Event Tab (עם שלג מוחזר ועובד)
 local EventBackground = Instance.new("Frame", Tab_Event_Page)
 EventBackground.Size = UDim2.new(1,0,1,0)
 EventBackground.ZIndex = 0
