@@ -1,11 +1,11 @@
 --[[
-    Spaghetti Mafia Hub v1 (ULTRA COMPLETE WINTER EDITION)
+    Spaghetti Mafia Hub v1 (FIXED TABS + SNOW LOAD + FULL RESTORE)
     Updates:
-    - ALL Systems Restored (Main, Settings, Credits, Binds).
-    - Compact Loading Screen (Extended duration).
-    - Custom Falling Snow Effect in Event Tab.
-    - Swapped Layout (Total Top, Session Bottom).
-    - Strongest Anti-AFK (Jump + Virtual Input).
+    - Fixed Sidebar Tabs disappearing (UIListLayout priority fixed).
+    - Loading Screen: Compact Box with Falling Snow inside.
+    - Event Tab: Winter Background + Falling Snow Effect.
+    - Restored: Main (Fly/Speed), Settings (FOV/Scale), Credits (Images/Copy).
+    - Layout: Total Balance (Top) / Session Stats (Bottom).
 ]]
 
 local Players = game:GetService("Players")
@@ -17,12 +17,13 @@ local Workspace = game:GetService("Workspace")
 local VirtualUser = game:GetService("VirtualUser")
 local TeleportService = game:GetService("TeleportService")
 local CoreGui = game:GetService("CoreGui")
+local Debris = game:GetService("Debris")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 --// 1. מערכת Whitelist
-local WHITELIST_URL = "https://github.com/neho431/SpaghettiKeys/blob/main/whitelist.txt"
+local WHITELIST_URL = "https://raw.githubusercontent.com/neho431/SpaghettiKeys/main/whitelist.txt"
 
 local function CheckWhitelist()
     local success, content = pcall(function()
@@ -74,13 +75,14 @@ local FarmConnection = nil
 local FarmBlacklist = {}
 local LastFullScan = 0
 
---// 3. מסך טעינה קומפקטי (ארוך יותר)
+--// 3. מסך טעינה קומפקטי עם שלג
 local LoadGui = Instance.new("ScreenGui"); LoadGui.Name = "SpaghettiLoading"; LoadGui.Parent = CoreGui
 local LoadBox = Instance.new("Frame", LoadGui)
 LoadBox.Size = UDim2.new(0, 220, 0, 160)
 LoadBox.Position = UDim2.new(0.5, 0, 0.5, 0)
 LoadBox.AnchorPoint = Vector2.new(0.5, 0.5)
 LoadBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+LoadBox.ClipsDescendants = true -- חשוב כדי שהשלג לא ייצא מהריבוע
 LoadBox.BorderSizePixel = 0
 local BoxStroke = Instance.new("UIStroke", LoadBox); BoxStroke.Color = Color3.fromRGB(255, 215, 0); BoxStroke.Thickness = 2
 local BoxCorner = Instance.new("UICorner", LoadBox); BoxCorner.CornerRadius = UDim.new(0, 12)
@@ -88,15 +90,40 @@ local BoxCorner = Instance.new("UICorner", LoadBox); BoxCorner.CornerRadius = UD
 local PastaIcon = Instance.new("TextLabel", LoadBox)
 PastaIcon.Size = UDim2.new(1, 0, 0.6, 0); PastaIcon.Position = UDim2.new(0,0,0.1,0)
 PastaIcon.BackgroundTransparency = 1; PastaIcon.Text = "🍝"; PastaIcon.TextSize = 60; PastaIcon.TextYAlignment = Enum.TextYAlignment.Center
+PastaIcon.ZIndex = 5
 
 local TitleLoad = Instance.new("TextLabel", LoadBox)
 TitleLoad.Size = UDim2.new(1, 0, 0.2, 0); TitleLoad.Position = UDim2.new(0, 0, 0.65, 0)
 TitleLoad.BackgroundTransparency = 1; TitleLoad.Text = "Spaghetti Mafia Hub v1"; TitleLoad.Font = Enum.Font.GothamBold; TitleLoad.TextColor3 = Color3.new(1,1,1); TitleLoad.TextSize = 14
+TitleLoad.ZIndex = 5
 
 local SubLoad = Instance.new("TextLabel", LoadBox)
 SubLoad.Size = UDim2.new(1, 0, 0.2, 0); SubLoad.Position = UDim2.new(0, 0, 0.8, 0)
 SubLoad.BackgroundTransparency = 1; SubLoad.Text = "Loading Assets..."; SubLoad.Font = Enum.Font.Gotham; SubLoad.TextColor3 = Color3.fromRGB(255, 215, 0); SubLoad.TextSize = 12
+SubLoad.ZIndex = 5
 
+-- אפקט שלג בתוך הטעינה
+task.spawn(function()
+    while LoadBox.Parent do
+        local flake = Instance.new("Frame", LoadBox)
+        flake.Size = UDim2.new(0, math.random(2,4), 0, math.random(2,4))
+        flake.Position = UDim2.new(math.random(), 0, -0.1, 0)
+        flake.BackgroundColor3 = Color3.new(1,1,1)
+        flake.BorderSizePixel = 0
+        flake.ZIndex = 2
+        local c = Instance.new("UICorner", flake); c.CornerRadius = UDim.new(1,0)
+        
+        TweenService:Create(flake, TweenInfo.new(math.random(2,4), Enum.EasingStyle.Linear), {
+            Position = UDim2.new(flake.Position.X.Scale + (math.random(-2,2)/20), 0, 1.2, 0),
+            BackgroundTransparency = 1
+        }):Play()
+        
+        Debris:AddItem(flake, 4)
+        task.wait(0.1)
+    end
+end)
+
+-- אנימציית פסטה
 task.spawn(function()
     local t = 0
     while LoadBox.Parent do
@@ -107,7 +134,7 @@ task.spawn(function()
     end
 end)
 
-task.wait(3.5) -- טעינה ארוכה יותר כפי שביקשת
+task.wait(4) -- זמן טעינה ארוך יותר
 LoadGui:Destroy()
 
 --// 4. ספרית עיצוב
@@ -123,7 +150,7 @@ function Library:MakeDraggable(obj)
     RunService.RenderStepped:Connect(function() if dragging and dragInput then local delta = dragInput.Position - dragStart; obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
 end
 
---// 5. GUI ראשי
+--// 5. GUI ראשי - בנייה מחדש
 local ScreenGui = Instance.new("ScreenGui"); ScreenGui.Name = "SpaghettiHub_Rel"; ScreenGui.Parent = CoreGui; ScreenGui.ResetOnSpawn = false
 
 local MiniPasta = Instance.new("TextButton", ScreenGui); MiniPasta.Size = UDim2.new(0, 60, 0, 60); MiniPasta.Position = UDim2.new(0.1, 0, 0.1, 0); MiniPasta.BackgroundColor3 = Settings.Theme.Dark; MiniPasta.Text = "🍝"; MiniPasta.TextSize = 35; MiniPasta.Visible = false; Library:Corner(MiniPasta, 30); Library:AddGlow(MiniPasta); Library:MakeDraggable(MiniPasta)
@@ -141,31 +168,69 @@ MiniPasta.MouseButton1Up:Connect(function() if (UIS:GetMouseLocation() - pds).Ma
 local MainTitle = Instance.new("TextLabel", TopBar); MainTitle.Size = UDim2.new(0,300,0,30); MainTitle.Position = UDim2.new(0,50,0,10); MainTitle.BackgroundTransparency = 1; MainTitle.Text = "SPAGHETTI <font color='#FFD700'>MAFIA</font> HUB v1"; MainTitle.RichText = true; MainTitle.Font = Enum.Font.GothamBlack; MainTitle.TextSize = 20; MainTitle.TextColor3 = Color3.new(1,1,1); MainTitle.TextXAlignment = Enum.TextXAlignment.Left; Library:AddTextGlow(MainTitle)
 local MainSub = Instance.new("TextLabel", TopBar); MainSub.Size = UDim2.new(0,300,0,20); MainSub.Position = UDim2.new(0,50,0,32); MainSub.BackgroundTransparency = 1; MainSub.Text = "עולם הכיף"; MainSub.Font = Enum.Font.GothamBold; MainSub.TextSize = 13; MainSub.TextColor3 = Settings.Theme.Gold; MainSub.TextXAlignment = Enum.TextXAlignment.Left
 
+-- תיקון ה-Sidebar: הגדרה מוקדמת וברורה
 local Sidebar = Instance.new("Frame", MainFrame); Sidebar.Size = UDim2.new(0, 160, 1, -60); Sidebar.Position = UDim2.new(0,0,0,60); Sidebar.BackgroundColor3 = Settings.Theme.Box; Sidebar.BorderSizePixel = 0; Sidebar.ZIndex = 2; Library:Corner(Sidebar, 12)
+local SideList = Instance.new("UIListLayout", Sidebar); SideList.Padding = UDim.new(0,10); SideList.HorizontalAlignment = Enum.HorizontalAlignment.Center; SideList.SortOrder = Enum.SortOrder.LayoutOrder -- חובה!
+local SidePad = Instance.new("UIPadding", Sidebar); SidePad.PaddingTop = UDim.new(0,15)
+
 local Container = Instance.new("Frame", MainFrame); Container.Size = UDim2.new(1, -170, 1, -70); Container.Position = UDim2.new(0, 170, 0, 65); Container.BackgroundTransparency = 1
+
 local currentTab = nil
-local function CreateTab(name, heb)
-    local btn = Instance.new("TextButton", Sidebar); btn.Size = UDim2.new(0.9,0,0,40); btn.BackgroundColor3 = Settings.Theme.Dark; btn.Text = name .. "\n<font size='11' color='#AAAAAA'>"..heb.."</font>"; btn.RichText = true; btn.TextColor3 = Color3.fromRGB(150,150,150); btn.Font = Enum.Font.GothamBold; btn.TextSize = 14; btn.ZIndex = 3; Library:Corner(btn, 6)
-    local page = Instance.new("Frame", Container); page.Size = UDim2.new(1,0,1,0); page.BackgroundTransparency = 1; page.Visible = false
+local function CreateTab(name, heb, order)
+    local btn = Instance.new("TextButton", Sidebar)
+    btn.Size = UDim2.new(0.9,0,0,40)
+    btn.BackgroundColor3 = Settings.Theme.Dark
+    btn.Text = name .. "\n<font size='11' color='#AAAAAA'>"..heb.."</font>"
+    btn.RichText = true
+    btn.TextColor3 = Color3.fromRGB(150,150,150)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.ZIndex = 3
+    btn.LayoutOrder = order -- סדר חשוב
+    Library:Corner(btn, 6)
+    
+    local page = Instance.new("Frame", Container)
+    page.Size = UDim2.new(1,0,1,0)
+    page.BackgroundTransparency = 1
+    page.Visible = false
+    page.Name = name .. "_Page"
+    
     btn.MouseButton1Click:Connect(function()
         for _,v in pairs(Sidebar:GetChildren()) do if v:IsA("TextButton") then Library:Tween(v, {BackgroundColor3 = Settings.Theme.Dark, TextColor3 = Color3.fromRGB(150,150,150)}) end end
         for _,v in pairs(Container:GetChildren()) do v.Visible = false end
-        Library:Tween(btn, {BackgroundColor3 = Settings.Theme.Gold, TextColor3 = Color3.new(0,0,0)}); page.Visible = true
+        Library:Tween(btn, {BackgroundColor3 = Settings.Theme.Gold, TextColor3 = Color3.new(0,0,0)})
+        page.Visible = true
     end)
-    if not currentTab then currentTab = btn; Library:Tween(btn, {BackgroundColor3 = Settings.Theme.Gold, TextColor3 = Color3.new(0,0,0)}); page.Visible = true end
+    
+    if not currentTab then 
+        currentTab = btn
+        Library:Tween(btn, {BackgroundColor3 = Settings.Theme.Gold, TextColor3 = Color3.new(0,0,0)})
+        page.Visible = true 
+    end
+    
     return page
 end
 
-local Tab_Farm_Page = CreateTab("❄️ Event", "אירוע חורף")
-local Tab_Main = CreateTab("Main", "ראשי")
-local Tab_Sett = CreateTab("Settings", "הגדרות")
-local Tab_Cred = CreateTab("Credits", "קרדיטים")
+-- יצירת הטאבים בסדר נכון
+local Tab_Event_Page = CreateTab("❄️ Event", "אירוע חורף", 1)
+local Tab_Main_Page = CreateTab("Main", "ראשי", 2)
+local Tab_Settings_Page = CreateTab("Settings", "הגדרות", 3)
+local Tab_Credits_Page = CreateTab("Credits", "קרדיטים", 4)
 
-local function AddLayout(p) local l = Instance.new("UIListLayout", p); l.Padding = UDim.new(0,12); l.HorizontalAlignment = Enum.HorizontalAlignment.Center; local pad = Instance.new("UIPadding", p); pad.PaddingTop = UDim.new(0,10) end
-AddLayout(Tab_Main); AddLayout(Tab_Sett); AddLayout(Tab_Cred)
+-- פונקציית פריסה לדפים הרגילים
+local function AddLayout(p) 
+    local l = Instance.new("UIListLayout", p)
+    l.Padding = UDim.new(0,12)
+    l.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    local pad = Instance.new("UIPadding", p)
+    pad.PaddingTop = UDim.new(0,10) 
+end
+
+AddLayout(Tab_Main_Page)
+AddLayout(Tab_Settings_Page)
+AddLayout(Tab_Credits_Page)
 
 --// 6. מערכות לוגיקה (חווה, תעופה, אנטי AFK)
-
 -- Super Strong Anti-AFK
 task.spawn(function()
     while true do
@@ -251,25 +316,53 @@ local function ToggleFly(v)
     else if hrp:FindFirstChild("F_V") then hrp.F_V:Destroy() end; if hrp:FindFirstChild("F_G") then hrp.F_G:Destroy() end; hum.PlatformStand=false end
 end
 
---// 7. Event Tab - עם שלג ואנימציות
-local Tab_Farm_Scroll = Instance.new("ScrollingFrame", Tab_Farm_Page)
-Tab_Farm_Scroll.Size = UDim2.new(1, 0, 1, 0); Tab_Farm_Scroll.BackgroundTransparency = 1; Tab_Farm_Scroll.ScrollBarThickness = 2; Tab_Farm_Scroll.ScrollBarImageColor3 = Settings.Theme.WinterAccent; Tab_Farm_Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Tab_Farm_Scroll.BorderSizePixel = 0; Tab_Farm_Scroll.ZIndex = 5
+--// 7. Event Tab - עם שלג ואנימציות (עכשיו בטוח עובד)
+-- רקע כחול עמוק לדף
+local EventBackground = Instance.new("Frame", Tab_Event_Page)
+EventBackground.Size = UDim2.new(1,0,1,0)
+EventBackground.ZIndex = 0
+local EventGradient = Instance.new("UIGradient", EventBackground)
+EventGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 25, 45)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 10, 20))
+}
+EventGradient.Rotation = 45
 
--- אפקט שלג (Falling Snow Effect)
-local SnowContainer = Instance.new("Frame", Tab_Farm_Page)
-SnowContainer.Size = UDim2.new(1,0,1,0); SnowContainer.BackgroundTransparency = 1; SnowContainer.ClipsDescendants = true; SnowContainer.ZIndex = 1
-local EventGradient = Instance.new("UIGradient", Tab_Farm_Page); EventGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 40, 60)), ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 20, 35))}; EventGradient.Rotation = 45
+-- אפקט שלג נופל בדף האירוע
+local EventSnowContainer = Instance.new("Frame", Tab_Event_Page)
+EventSnowContainer.Size = UDim2.new(1,0,1,0)
+EventSnowContainer.BackgroundTransparency = 1
+EventSnowContainer.ClipsDescendants = true
+EventSnowContainer.ZIndex = 1
 
 task.spawn(function()
-    while Tab_Farm_Page.Parent do
-        local flake = Instance.new("Frame", SnowContainer)
-        flake.Size = UDim2.new(0, math.random(2,5), 0, math.random(2,5)); flake.Position = UDim2.new(math.random(), 0, -0.1, 0); flake.BackgroundColor3 = Color3.new(1,1,1); flake.BackgroundTransparency = math.random(0.3, 0.7)
+    while Tab_Event_Page.Parent do
+        local flake = Instance.new("Frame", EventSnowContainer)
+        flake.Size = UDim2.new(0, math.random(2,5), 0, math.random(2,5))
+        flake.Position = UDim2.new(math.random(), 0, -0.1, 0)
+        flake.BackgroundColor3 = Color3.new(1,1,1)
+        flake.BackgroundTransparency = math.random(0.4, 0.8)
+        flake.BorderSizePixel = 0
         local c = Instance.new("UICorner", flake); c.CornerRadius = UDim.new(1,0)
-        TweenService:Create(flake, TweenInfo.new(math.random(3,6), Enum.EasingStyle.Linear), {Position = UDim2.new(flake.Position.X.Scale + (math.random(-2,2)/10), 0, 1.1, 0), BackgroundTransparency = 1}):Play()
-        game:GetService("Debris"):AddItem(flake, 6)
+        
+        TweenService:Create(flake, TweenInfo.new(math.random(4,8), Enum.EasingStyle.Linear), {
+            Position = UDim2.new(flake.Position.X.Scale + (math.random(-1,1)/10), 0, 1.1, 0),
+            BackgroundTransparency = 1
+        }):Play()
+        
+        Debris:AddItem(flake, 8)
         task.wait(0.2)
     end
 end)
+
+local Tab_Farm_Scroll = Instance.new("ScrollingFrame", Tab_Event_Page)
+Tab_Farm_Scroll.Size = UDim2.new(1, 0, 1, 0)
+Tab_Farm_Scroll.BackgroundTransparency = 1
+Tab_Farm_Scroll.ScrollBarThickness = 2
+Tab_Farm_Scroll.ScrollBarImageColor3 = Settings.Theme.WinterAccent
+Tab_Farm_Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Tab_Farm_Scroll.BorderSizePixel = 0
+Tab_Farm_Scroll.ZIndex = 5 -- מעל השלג
 
 local EventLayout = Instance.new("UIListLayout", Tab_Farm_Scroll); EventLayout.Padding = UDim.new(0, 15); EventLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center; EventLayout.SortOrder = Enum.SortOrder.LayoutOrder; local EventPad = Instance.new("UIPadding", Tab_Farm_Scroll); EventPad.PaddingTop = UDim.new(0,10)
 
@@ -365,17 +458,17 @@ local function CreateSquareBind(parent, id, title, heb, default, callback)
 end
 
 -- Tab_Main Content (הוחזר)
-CreateSlider(Tab_Main, "Walk Speed", "מהירות הליכה", 16, 250, 16, function(v) Settings.Speed.Value = v end, function(t) Settings.Speed.Enabled = t end, "Speed")
-CreateSlider(Tab_Main, "Fly Speed", "מהירות תעופה", 20, 300, 50, function(v) Settings.Fly.Speed = v end, function(t) ToggleFly(t) end, "Fly")
-local BindCont = Instance.new("Frame", Tab_Main); BindCont.Size = UDim2.new(0.95,0,0,80); BindCont.BackgroundTransparency = 1; CreateSquareBind(BindCont, 1, "FLY", "תעופה", Settings.Keys.Fly, function(k) Settings.Keys.Fly = k end); CreateSquareBind(BindCont, 2, "SPEED", "מהירות", Settings.Keys.Speed, function(k) Settings.Keys.Speed = k end)
+CreateSlider(Tab_Main_Page, "Walk Speed", "מהירות הליכה", 16, 250, 16, function(v) Settings.Speed.Value = v end, function(t) Settings.Speed.Enabled = t end, "Speed")
+CreateSlider(Tab_Main_Page, "Fly Speed", "מהירות תעופה", 20, 300, 50, function(v) Settings.Fly.Speed = v end, function(t) ToggleFly(t) end, "Fly")
+local BindCont = Instance.new("Frame", Tab_Main_Page); BindCont.Size = UDim2.new(0.95,0,0,80); BindCont.BackgroundTransparency = 1; CreateSquareBind(BindCont, 1, "FLY", "תעופה", Settings.Keys.Fly, function(k) Settings.Keys.Fly = k end); CreateSquareBind(BindCont, 2, "SPEED", "מהירות", Settings.Keys.Speed, function(k) Settings.Keys.Speed = k end)
 
 -- Tab_Settings Content (הוחזר)
-CreateSlider(Tab_Sett, "FOV", "שדה ראייה", 70, 120, 70, function(v) Camera.FieldOfView = v end); CreateSlider(Tab_Sett, "GUI Scale", "גודל ממשק", 0.5, 1.5, 1, function(v) MainScale.Scale = v end)
-local MenuBindCont = Instance.new("Frame", Tab_Sett); MenuBindCont.Size = UDim2.new(0.95,0,0,70); MenuBindCont.BackgroundTransparency = 1; CreateSquareBind(MenuBindCont, 3, "MENU KEY", "מקש תפריט", Settings.Keys.Menu, function(k) Settings.Keys.Menu = k end)
+CreateSlider(Tab_Settings_Page, "FOV", "שדה ראייה", 70, 120, 70, function(v) Camera.FieldOfView = v end); CreateSlider(Tab_Settings_Page, "GUI Scale", "גודל ממשק", 0.5, 1.5, 1, function(v) MainScale.Scale = v end)
+local MenuBindCont = Instance.new("Frame", Tab_Settings_Page); MenuBindCont.Size = UDim2.new(0.95,0,0,70); MenuBindCont.BackgroundTransparency = 1; CreateSquareBind(MenuBindCont, 3, "MENU KEY", "מקש תפריט", Settings.Keys.Menu, function(k) Settings.Keys.Menu = k end)
 
 -- Tab_Credits Content (הוחזר)
 local function AddCr(n, id)
-    local f = Instance.new("Frame", Tab_Cred); f.Size = UDim2.new(0.95,0,0,100); f.BackgroundColor3 = Settings.Theme.Box; Library:Corner(f, 12); Library:AddGlow(f)
+    local f = Instance.new("Frame", Tab_Credits_Page); f.Size = UDim2.new(0.95,0,0,100); f.BackgroundColor3 = Settings.Theme.Box; Library:Corner(f, 12); Library:AddGlow(f)
     local i = Instance.new("ImageLabel", f); i.Size = UDim2.new(0,80,0,80); i.Position = UDim2.new(0,10,0.5,-40); i.Image = "rbxthumb://type=AvatarHeadShot&id="..id.."&w=150&h=150"; Library:Corner(i, 40)
     local t = Instance.new("TextLabel", f); t.Size = UDim2.new(0,350,0,30); t.Position = UDim2.new(0,100,0,20); t.Text = n .. " <font color='#AAAAAA'>(יוצרים)</font>"; t.RichText=true; t.TextColor3 = Settings.Theme.Gold; t.Font=Enum.Font.GothamBlack; t.TextSize=22; t.TextXAlignment="Left"; t.BackgroundTransparency=1
     local b = Instance.new("TextButton", f); b.Size = UDim2.new(0,140,0,30); b.Position = UDim2.new(0,100,0,55); b.BackgroundColor3 = Color3.fromRGB(88,101,242); b.Text="Copy Discord"; b.TextColor3=Color3.new(1,1,1); Library:Corner(b,6); b.TextSize=13; b.MouseButton1Click:Connect(function() setclipboard(n); b.Text="Copied!"; task.wait(1); b.Text="Copy Discord" end)
@@ -395,4 +488,4 @@ RunService.RenderStepped:Connect(function()
     if Settings.Speed.Enabled and LocalPlayer.Character then local h = LocalPlayer.Character:FindFirstChild("Humanoid"); if h then h.WalkSpeed = Settings.Speed.Value end end
 end)
 
-print("[SYSTEM] Spaghetti Mafia Hub - All Systems Operational")
+print("[SYSTEM] Spaghetti Mafia Hub - Complete Restore Loaded")
