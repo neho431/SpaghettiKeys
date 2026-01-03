@@ -563,3 +563,4 @@ RunService.RenderStepped:Connect(function()
 end)
 
 print("[SYSTEM] Spaghetti Mafia Hub v3 Loaded")
+
