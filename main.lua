@@ -1,34 +1,60 @@
 --[[
-    Spaghetti Mafia Hub v1 (MERGED ULTRA FINAL)
-    Base: Script 1 (GUI/Key System)
-    Logic: Script 2 (Advanced Farm & Stats)
-    Fixes: Correct Data Paths, Session Only Stats.
+    Spaghetti Mafia Hub v1 (FINAL FIXED EDITION)
+    - Whitelist: GitHub System Restored
+    - Farm Logic: Ultra Safe (Portals/Doors Disabled)
+    - Stats: Session Only (Starts at 0), Correct Colors (Red=Crystals, Blue=Shards)
+    - Path: Direct LocalPlayer (No Leaderstats)
 ]]
-
---// ניקוי סקריפטים ישנים
-local CoreGui = game:GetService("CoreGui")
-if CoreGui:FindFirstChild("SpaghettiHub_Rel") then
-    CoreGui.SpaghettiHub_Rel:Destroy()
-end
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
---// הגדרות
+--// 1. מערכת Whitelist (בדיקה מול GitHub)
+local WHITELIST_URL = "https://raw.githubusercontent.com/neho431/SpaghettiKeys/main/whitelist.txt"
+
+local function CheckWhitelist()
+    local success, content = pcall(function()
+        return game:HttpGet(WHITELIST_URL .. "?t=" .. tick())
+    end)
+    
+    if success and content then
+        if string.find(content, LocalPlayer.Name) then
+            print("[SYSTEM] Whitelist Confirmed. Welcome, " .. LocalPlayer.Name)
+            return true
+        else
+            LocalPlayer:Kick("Spaghetti Mafia Hub: Not Whitelisted! (Contact Admin)")
+            return false
+        end
+    else
+        -- במקרה של כישלון רשת, ניתן להחליט אם לזרוק או לא. כרגע נזרוק ליתר ביטחון.
+        LocalPlayer:Kick("Spaghetti Mafia Hub: Connection Error (Whitelist Check Failed)")
+        return false
+    end
+end
+
+-- הפעלת הבדיקה (אם נכשל - הקוד עוצר כאן)
+if not CheckWhitelist() then return end
+
+--// ניקוי סקריפטים ישנים
+if CoreGui:FindFirstChild("SpaghettiHub_Rel") then
+    CoreGui.SpaghettiHub_Rel:Destroy()
+end
+
+--// הגדרות מערכת
 local Settings = {
-    Key = "Spaghetti2024",
     Theme = {
         Gold = Color3.fromRGB(255, 215, 0),
         Dark = Color3.fromRGB(10, 10, 10),
         Box = Color3.fromRGB(18, 18, 18),
         Text = Color3.fromRGB(255, 255, 255),
-        -- צבעים חדשים לסטטיסטיקה
         Ice = Color3.fromRGB(135, 206, 250),
         IceDark = Color3.fromRGB(20, 30, 45),
         ShardBlue = Color3.fromRGB(50, 180, 255),
@@ -42,14 +68,19 @@ local Settings = {
     Fly = { Enabled = false, Speed = 50 },
     Speed = { Enabled = false, Value = 16 },
     Farming = false,
-    FarmSpeed = 120, -- מהירות מעודכנת מסקריפט 2
+    FarmSpeed = 120, 
     Scale = 1
 }
+
+--// Anti-AFK
+LocalPlayer.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
 
 local VisualToggles = {}
 local FarmConnection = nil
 local FarmBlacklist = {}
-local LastFullScan = 0
 
 --// ספרית עיצוב
 local Library = {}
@@ -66,14 +97,6 @@ function Library:AddGlow(obj, color)
     s.Transparency = 0.6
     s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     return s
-end
-
-function Library:AddTextGlow(obj, color)
-    local s = Instance.new("UIStroke", obj)
-    s.Color = color or Settings.Theme.Gold
-    s.Thickness = 0.6
-    s.Transparency = 0.7
-    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
 end
 
 function Library:Corner(obj, r)
@@ -101,7 +124,7 @@ function Library:MakeDraggable(obj)
     end)
 end
 
---// יצירת ממשק
+--// יצירת ממשק ראשי (בלי Key System)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SpaghettiHub_Rel"
 ScreenGui.Parent = CoreGui
@@ -117,14 +140,17 @@ MainFrame.Size = UDim2.new(0, 600, 0, 400)
 MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 MainFrame.BackgroundColor3 = Settings.Theme.Dark
-MainFrame.Visible = false
 MainFrame.ClipsDescendants = true 
 Library:Corner(MainFrame, 12); Library:AddGlow(MainFrame)
+Library:MakeDraggable(MainFrame)
+
+-- אנימציית פתיחה
+MainFrame.Size = UDim2.new(0,0,0,0)
+Library:Tween(MainFrame, {Size = UDim2.new(0, 600, 0, 400)}, 0.6, Enum.EasingStyle.Elastic)
 
 local MainScale = Instance.new("UIScale", MainFrame); MainScale.Scale = 1
 local TopBar = Instance.new("Frame", MainFrame)
 TopBar.Size = UDim2.new(1,0,0,60); TopBar.BackgroundTransparency = 1
-Library:MakeDraggable(MainFrame)
 
 local MinBtn = Instance.new("TextButton", TopBar)
 MinBtn.Size = UDim2.new(0, 30, 0, 30); MinBtn.Position = UDim2.new(0, 10, 0, 10)
@@ -197,7 +223,7 @@ local function CreateTab(name, heb)
     return page
 end
 
-local Tab_Farm_Container = CreateTab("Farming", "חווה") -- שיניתי את השם למניעת התנגשות
+local Tab_Farm_Container = CreateTab("Farming", "חווה") 
 local Tab_Main = CreateTab("Main", "ראשי")
 local Tab_Sett = CreateTab("Settings", "הגדרות")
 local Tab_Cred = CreateTab("Credits", "קרדיטים")
@@ -206,11 +232,10 @@ local function AddLayout(p)
     local l = Instance.new("UIListLayout", p); l.Padding = UDim.new(0,12); l.HorizontalAlignment = Enum.HorizontalAlignment.Center 
     local pad = Instance.new("UIPadding", p); pad.PaddingTop = UDim.new(0,10)
 end
--- AddLayout(Tab_Farm) -- בוטל כדי לאפשר עיצוב מותאם אישית לטאב החווה
 AddLayout(Tab_Main); AddLayout(Tab_Sett); AddLayout(Tab_Cred)
 
 --================================================================================
---// לוגיקת החווה החדשה (מסדריפט 2)
+--// מנגנון ה-Auto Farm המתוקן (העתק מדויק מסקריפט 2)
 --================================================================================
 
 local function GetClosestTarget()
@@ -229,15 +254,18 @@ local function GetClosestTarget()
     return closest
 end
 
+-- הפונקציה הקריטית לחסימת דלתות ופורטלים
 local function UltraSafeDisable()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     
-    -- חסימת אזורים בעייתיים (פורטלים, דלתות) - לוגיקה מסקריפט 2
+    -- מניעת התנגשויות בחלקים רגילים
+    for _, part in pairs(char:GetChildren()) do if part:IsA("BasePart") then part.CanTouch = false end end
+    
+    -- סריקת האזור הקרוב והשמדת TouchInterest של דלתות
     local region = Region3.new(hrp.Position - Vector3.new(30,30,30), hrp.Position + Vector3.new(30,30,30))
     local objects = workspace:FindPartsInRegion3(region, nil, 200)
-    
     for _, part in pairs(objects) do
         local n = part.Name:lower()
         if n:find("door") or n:find("portal") or n:find("tele") or n:find("gate") or n:find("enter") or n:find("selection") or n:find("lobby") or n:find("zone") or n:find("minigame") or n:find("warp") then
@@ -259,9 +287,9 @@ local function EnableNoclip(bool)
                     local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
                     if hum then 
                         hum.Sit = false 
-                        hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false) -- Anti-Sit
+                        hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false) 
                     end
-                    UltraSafeDisable() 
+                    UltraSafeDisable() -- קריאה לניטרול דלתות בכל פריים
                 end
             end)
         end
@@ -287,8 +315,6 @@ local function ToggleFarm(v)
                 
                 if char and hrp and target and Settings.Farming then
                     local distance = (hrp.Position - target.Position).Magnitude
-                    
-                    -- תנועה משופרת מסקריפט 2
                     local info = TweenInfo.new(distance / Settings.FarmSpeed, Enum.EasingStyle.Linear)
                     local tween = TweenService:Create(hrp, info, {CFrame = target.CFrame})
                     tween:Play()
@@ -296,7 +322,7 @@ local function ToggleFarm(v)
                     local start = tick()
                     while Settings.Farming and target.Parent and (tick() - start) < 1.5 do
                         task.wait()
-                        -- איסוף אגרסיבי (FireTouchInterest)
+                        -- איסוף אגרסיבי (בדיוק כמו בסקריפט 2)
                         if (hrp.Position - target.Position).Magnitude < 10 then
                             if firetouchinterest then
                                 firetouchinterest(target, hrp, 0)
@@ -318,10 +344,10 @@ local function ToggleFarm(v)
 end
 
 --================================================================================
---// בנייה מחדש של ה-FARM TAB (עם הריבועים והסטטיסטיקה מסקריפט 2)
+--// עיצוב הטאב של החווה (Toggle -> AFK -> Stats)
 --================================================================================
 
--- 1. יצירת ScrollingFrame בתוך הטאב הקיים
+-- יצירת ScrollingFrame בתוך הטאב הקיים
 local Tab_Farm = Instance.new("ScrollingFrame", Tab_Farm_Container)
 Tab_Farm.Size = UDim2.new(1, 0, 1, 0)
 Tab_Farm.BackgroundTransparency = 1
@@ -337,7 +363,7 @@ EventLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 EventLayout.SortOrder = Enum.SortOrder.LayoutOrder
 local EventPad = Instance.new("UIPadding", Tab_Farm); EventPad.PaddingTop = UDim.new(0,10); EventPad.PaddingBottom = UDim.new(0,20)
 
--- 2. כפתור הפעלה (Toggle Farm) בעיצוב החדש
+-- 1. כפתור הפעלה (Toggle Farm)
 local FarmBtn = Instance.new("TextButton", Tab_Farm)
 FarmBtn.Size = UDim2.new(0.95, 0, 0, 70)
 FarmBtn.BackgroundColor3 = Settings.Theme.IceDark 
@@ -386,11 +412,22 @@ FarmBtn.MouseButton1Click:Connect(function()
     ToggleFarm(isFarming)
 end)
 
--- 3. סטטיסטיקה - כותרת
+-- 2. Anti-AFK Status
+local AFKStatus = Instance.new("TextLabel", Tab_Farm)
+AFKStatus.Size = UDim2.new(0.95, 0, 0, 20)
+AFKStatus.BackgroundTransparency = 1
+AFKStatus.Text = "Anti-AFK System: <font color='#00FF00'>Active</font> ⚡"
+AFKStatus.RichText = true
+AFKStatus.TextColor3 = Color3.new(1, 1, 1)
+AFKStatus.Font = Enum.Font.GothamMedium
+AFKStatus.TextSize = 13
+AFKStatus.LayoutOrder = 2
+
+-- 3. כותרת סטטיסטיקה
 local StatsLabel = Instance.new("TextLabel", Tab_Farm)
 StatsLabel.Size = UDim2.new(0.95,0,0,20); StatsLabel.Text = "Session Collected (איסוף נוכחי) 📥"; StatsLabel.TextColor3 = Color3.fromRGB(180,180,180); StatsLabel.Font=Enum.Font.GothamBold; StatsLabel.TextSize=12; StatsLabel.BackgroundTransparency=1; StatsLabel.LayoutOrder=3
 
--- 4. קונטיינר הריבועים (אדום/כחול)
+-- 4. קונטיינר הריבועים
 local StatsContainer = Instance.new("Frame", Tab_Farm)
 StatsContainer.Size = UDim2.new(0.95, 0, 0, 85)
 StatsContainer.BackgroundTransparency = 1
@@ -400,35 +437,6 @@ local StatsGrid = Instance.new("UIGridLayout", StatsContainer)
 StatsGrid.CellSize = UDim2.new(0.48, 0, 1, 0)
 StatsGrid.CellPadding = UDim2.new(0.04, 0, 0, 0)
 StatsGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
--- ריבוע כחול (Shards)
-local BoxBlue = Instance.new("Frame", StatsContainer)
-BoxBlue.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
-Library:Corner(BoxBlue, 12)
-local StrokeBlue = Instance.new("UIStroke", BoxBlue)
-StrokeBlue.Color = Settings.Theme.ShardBlue
-StrokeBlue.Thickness = 1.2
-StrokeBlue.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-local TitleBlue = Instance.new("TextLabel", BoxBlue)
-TitleBlue.Size = UDim2.new(1, 0, 0.3, 0)
-TitleBlue.Position = UDim2.new(0,0,0.1,0)
-TitleBlue.BackgroundTransparency = 1
-TitleBlue.Text = "Shards 🧊"
-TitleBlue.TextColor3 = Settings.Theme.ShardBlue
-TitleBlue.Font = Enum.Font.GothamBold
-TitleBlue.TextSize = 16
-TitleBlue.TextYAlignment = Enum.TextYAlignment.Center
-
-local ValBlue = Instance.new("TextLabel", BoxBlue)
-ValBlue.Size = UDim2.new(1, 0, 0.5, 0)
-ValBlue.Position = UDim2.new(0,0,0.45,0)
-ValBlue.BackgroundTransparency = 1
-ValBlue.Text = "0"
-ValBlue.TextColor3 = Color3.new(1, 1, 1)
-ValBlue.Font = Enum.Font.GothamBlack
-ValBlue.TextSize = 30
-ValBlue.TextYAlignment = Enum.TextYAlignment.Center
 
 -- ריבוע אדום (Crystals)
 local BoxRed = Instance.new("Frame", StatsContainer)
@@ -459,7 +467,36 @@ ValRed.Font = Enum.Font.GothamBlack
 ValRed.TextSize = 30
 ValRed.TextYAlignment = Enum.TextYAlignment.Center
 
--- 5. שורות סיכום בתחתית
+-- ריבוע כחול (Shards)
+local BoxBlue = Instance.new("Frame", StatsContainer)
+BoxBlue.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
+Library:Corner(BoxBlue, 12)
+local StrokeBlue = Instance.new("UIStroke", BoxBlue)
+StrokeBlue.Color = Settings.Theme.ShardBlue
+StrokeBlue.Thickness = 1.2
+StrokeBlue.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local TitleBlue = Instance.new("TextLabel", BoxBlue)
+TitleBlue.Size = UDim2.new(1, 0, 0.3, 0)
+TitleBlue.Position = UDim2.new(0,0,0.1,0)
+TitleBlue.BackgroundTransparency = 1
+TitleBlue.Text = "Shards 🧊"
+TitleBlue.TextColor3 = Settings.Theme.ShardBlue
+TitleBlue.Font = Enum.Font.GothamBold
+TitleBlue.TextSize = 16
+TitleBlue.TextYAlignment = Enum.TextYAlignment.Center
+
+local ValBlue = Instance.new("TextLabel", BoxBlue)
+ValBlue.Size = UDim2.new(1, 0, 0.5, 0)
+ValBlue.Position = UDim2.new(0,0,0.45,0)
+ValBlue.BackgroundTransparency = 1
+ValBlue.Text = "0"
+ValBlue.TextColor3 = Color3.new(1, 1, 1)
+ValBlue.Font = Enum.Font.GothamBlack
+ValBlue.TextSize = 30
+ValBlue.TextYAlignment = Enum.TextYAlignment.Center
+
+-- 5. שורות סיכום
 local SummaryFrame = Instance.new("Frame", Tab_Farm)
 SummaryFrame.Size = UDim2.new(0.95, 0, 0, 60)
 SummaryFrame.BackgroundColor3 = Settings.Theme.Box
@@ -494,37 +531,33 @@ TxtTotalSession.TextSize = 14
 TxtTotalSession.TextXAlignment = Enum.TextXAlignment.Left
 
 --================================================================================
---// לוגיקת ספירה (Session Stats) - התיקון הקריטי
+--// לוגיקת ספירה (Session Stats) - תיקון נתיבים (בלי Leaderstats)
 --================================================================================
 
 task.spawn(function()
     ValRed.Text = "..."
     ValBlue.Text = "..."
     
-    -- המתנה לטעינת הנתונים (מניעת קריסות)
-    -- חיבור ישיר ל-LocalPlayer.Crystals / Shards כפי שביקשת
     local function GetValueObject(name)
         local obj = LocalPlayer:WaitForChild(name, 5)
-        -- גיבוי: לפעמים השם באותיות קטנות
         if not obj then obj = LocalPlayer:WaitForChild(name:lower(), 2) end
         return obj
     end
 
+    -- חיפוש בתיקייה הראשית של השחקן (לא ב-leaderstats)
     local CrystalsRef = GetValueObject("Crystals")
     local ShardsRef = GetValueObject("Shards")
     
     if not CrystalsRef or not ShardsRef then
         ValRed.Text = "Err"
         ValBlue.Text = "Err"
-        warn("Spaghetti Hub: Could not find Crystals/Shards in LocalPlayer root.")
         return
     end
 
-    -- משתני התחלה לחישוב Session בלבד
+    -- שמירת ערך התחלתי לחישוב Session Only
     local InitialCrystals = CrystalsRef.Value
     local InitialShards = ShardsRef.Value
     
-    -- משתנים למעקב אחר הסערה האחרונה
     local LastCryValue = CrystalsRef.Value
     local LastShrdValue = ShardsRef.Value
     
@@ -532,23 +565,20 @@ task.spawn(function()
     local StormCollectedShrd = 0
 
     while true do
-        task.wait(0.5) -- עדכון כל חצי שניה (יעיל למובייל)
+        task.wait(0.5) -- עדכון עדין
         pcall(function()
             local CurrCry = CrystalsRef.Value
             local CurrShrd = ShardsRef.Value
 
-            -- חישוב מה שנאסף בסשן (נוכחי פחות התחלתי)
+            -- חישוב הפרש (מה שיש עכשיו פחות מה שהיה בהתחלה)
             local SessionCry = math.max(0, CurrCry - InitialCrystals)
             local SessionShrd = math.max(0, CurrShrd - InitialShards)
             
-            -- עדכון הריבועים
+            -- עדכון ריבועים (אדום=Crystals, כחול=Shards)
             ValRed.Text = tostring(SessionCry)
             ValBlue.Text = tostring(SessionShrd)
 
-            -- לוגיקת "סערה אחרונה" (Last Storm)
-            -- אם הערך עולה, אנחנו מוסיפים למונה הסערה. אם הערך לא השתנה הרבה זמן, אפשר לאפס (אופציונלי),
-            -- אבל כאן נשתמש בלוגיקה של צבירת הפרשים חיוביים.
-            
+            -- לוגיקת סערה אחרונה (מצטבר עליות)
             if CurrCry > LastCryValue then
                 StormCollectedCry = StormCollectedCry + (CurrCry - LastCryValue)
             end
@@ -556,26 +586,20 @@ task.spawn(function()
                 StormCollectedShrd = StormCollectedShrd + (CurrShrd - LastShrdValue)
             end
             
-            -- איפוס מונה סערה אם השחקן יצא מהמשחק/התחיל מחדש (לוגיקה בסיסית)
-            -- כאן נשאיר את זה כמונה מצטבר של הסשן כפי שהיה בסקריפט 2, אבל מעודכן.
-            -- כדי ליישר קו עם "Last Storm", נציג את הסכום של השינויים האחרונים.
-            
             LastCryValue = CurrCry
             LastShrdValue = CurrShrd
             
-            -- עדכון שורות סיכום
             local TotalSession = SessionCry + SessionShrd
-            -- נשתמש ב-TotalSession גם עבור Last Storm באופן זמני, או שנאפס אותו כשיש הפסקה ארוכה.
-            -- לצורך הפשטות והיציבות: Last Storm יציג את מה שנאסף לאחרונה, Total Session את הכל.
+            local StormTotal = StormCollectedCry + StormCollectedShrd
             
-            TxtLastStorm.Text = "Collected (Diff): " .. (StormCollectedCry + StormCollectedShrd) .. " 🌩️" -- מראה כמה נאסף בפועל (כולל אם בזבזת)
-            TxtTotalSession.Text = "Net Session: " .. TotalSession .. " 📦" -- מראה כמה יש לך בתיק יותר ממה שהתחלת
+            TxtLastStorm.Text = "Collected (Diff): " .. StormTotal .. " 🌩️"
+            TxtTotalSession.Text = "Net Session: " .. TotalSession .. " 📦"
         end)
     end
 end)
 
 --================================================================================
---// המשך סקריפט 1 (פונקציות GUI רגילות)
+--// המשך סקריפט 1 (פונקציות GUI רגילות וקרדיטים)
 --================================================================================
 
 local function CreateSlider(parent, title, heb, min, max, default, callback, toggleCallback, toggleName, isDecimal)
@@ -645,8 +669,7 @@ local function ToggleFly(v)
     end
 end
 
---// Content Setup
--- הערה: Tab_Farm כבר טופל למעלה עם הלוגיקה החדשה
+--// הגדרות טאבים נוספים
 CreateSlider(Tab_Main, "Walk Speed", "מהירות הליכה", 16, 250, 16, function(v) Settings.Speed.Value = v end, function(t) Settings.Speed.Enabled = t end, "Speed")
 CreateSlider(Tab_Main, "Fly Speed", "מהירות תעופה", 20, 300, 50, function(v) Settings.Fly.Speed = v end, function(t) ToggleFly(t) end, "Fly")
 local BindCont = Instance.new("Frame", Tab_Main); BindCont.Size = UDim2.new(0.95,0,0,80); BindCont.BackgroundTransparency = 1
@@ -667,49 +690,7 @@ end
 AddCr("nx3ho", 1323665023)
 AddCr("8adshot3", 3370067928)
 
---// Key System
-local KeyFrame = Instance.new("Frame", ScreenGui)
-KeyFrame.Size = UDim2.new(0, 400, 0, 260)
-KeyFrame.Position = UDim2.new(0.5, -200, 0.5, -130)
-KeyFrame.BackgroundColor3 = Settings.Theme.Dark
-Library:Corner(KeyFrame, 10); Library:AddGlow(KeyFrame)
-Library:MakeDraggable(KeyFrame)
-
-local KeyTitle = Instance.new("TextLabel", KeyFrame)
-KeyTitle.Size = UDim2.new(1,0,0,40); KeyTitle.Position = UDim2.new(0,0,0,15)
-KeyTitle.BackgroundTransparency = 1; KeyTitle.Text = "SPAGHETTI MAFIA HUB <font color='#FFD700'>v1</font>"
-KeyTitle.RichText = true; KeyTitle.Font = Enum.Font.GothamBlack; KeyTitle.TextSize = 24; KeyTitle.TextColor3 = Color3.new(1,1,1)
-Library:AddTextGlow(KeyTitle)
-
-local KeySub = Instance.new("TextLabel", KeyFrame)
-KeySub.Size = UDim2.new(1,0,0,20); KeySub.Position = UDim2.new(0,0,0,45)
-KeySub.BackgroundTransparency = 1; KeySub.Text = "עולם הכיף"
-KeySub.Font = Enum.Font.GothamBold; KeySub.TextSize = 16; KeySub.TextColor3 = Settings.Theme.Gold
-
-local KeyInput = Instance.new("TextBox", KeyFrame)
-KeyInput.Size = UDim2.new(0.7,0,0,45); KeyInput.Position = UDim2.new(0.15,0,0.4,0)
-KeyInput.BackgroundColor3 = Settings.Theme.Box; KeyInput.TextColor3 = Color3.new(1,1,1)
-KeyInput.PlaceholderText = "Enter Key... / הכנס מפתח"; KeyInput.Text = ""
-KeyInput.Font = Enum.Font.Gotham; KeyInput.TextSize = 14
-Library:Corner(KeyInput, 6); Library:AddGlow(KeyInput, Color3.fromRGB(60,60,60))
-
-local KeyBtn = Instance.new("TextButton", KeyFrame)
-KeyBtn.Size = UDim2.new(0.4,0,0,40); KeyBtn.Position = UDim2.new(0.3,0,0.75,0)
-KeyBtn.BackgroundColor3 = Settings.Theme.Gold; KeyBtn.Text = "LOGIN / כניסה"; KeyBtn.Font = Enum.Font.GothamBold; KeyBtn.TextSize = 16
-Library:Corner(KeyBtn, 6)
-
-KeyBtn.MouseButton1Click:Connect(function()
-    if KeyInput.Text == Settings.Key then
-        Library:Tween(KeyFrame, {Size = UDim2.new(0,0,0,0), Position = UDim2.new(0.5,0,0.5,0)}, 0.4, Enum.EasingStyle.Back)
-        task.wait(0.3)
-        KeyFrame.Visible = false
-        MainFrame.Visible = true
-        MainFrame.Size = UDim2.new(0,0,0,0)
-        Library:Tween(MainFrame, {Size = UDim2.new(0, 600, 0, 400)}, 0.6, Enum.EasingStyle.Elastic)
-    end
-end)
-
---// Binds
+--// Binds & Logic
 UIS.InputBegan:Connect(function(i,g)
     if not g then
         if i.KeyCode == Settings.Keys.Menu then 
@@ -742,4 +723,5 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-print("Spaghetti Mafia Hub Merged & Fixed Loaded")
+print("[SYSTEM] Spaghetti Mafia Hub - Final Fixed Edition Loaded")
+
