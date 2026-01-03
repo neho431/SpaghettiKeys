@@ -1,9 +1,8 @@
 --[[
-    Spaghetti Mafia Hub v1 (FIXED SNOW)
+    Spaghetti Mafia Hub v1 (BACKGROUND SNOW FIX)
     Updates:
-    - Version: Labeled as v1.
-    - Snow: Fixed by using reliable snowflake rendering (❄️) instead of images.
-    - Visibility: High ZIndex ensures snow is visible above backgrounds.
+    - Snow ZIndex: Changed to 1 (Behind text/buttons).
+    - Snow Visibility: Added UIStroke (Thicker) + Brighter White.
     - Logic: 100% Preserved. Nothing deleted.
 ]]
 
@@ -85,21 +84,26 @@ function Library:MakeDraggable(obj)
     RunService.RenderStepped:Connect(function() if dragging and dragInput then local delta = dragInput.Position - dragStart; obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
 end
 
---// פונקציית שלג (Snowflakes) - בטוחה לשימוש (TextLabel)
--- משתמשת באימוג'י ❄️ כדי להבטיח שהשלג יופיע תמיד
+--// פונקציית שלג (Snowflakes) - משופרת: עבה יותר, לבן יותר, וברקע!
 local function SpawnSnow(parent)
     local flake = Instance.new("TextLabel", parent)
     flake.Text = "❄️"
     flake.BackgroundTransparency = 1
-    flake.TextColor3 = Color3.fromRGB(240, 250, 255) -- לבן כחלחל
-    flake.Size = UDim2.new(0, math.random(20, 35), 0, math.random(20, 35))
+    flake.TextColor3 = Color3.fromRGB(255, 255, 255) -- לבן מוחלט וחזק
+    flake.Size = UDim2.new(0, math.random(25, 45), 0, math.random(25, 45)) -- קצת יותר גדול
     flake.Position = UDim2.new(math.random(1, 100)/100, 0, -0.2, 0)
-    flake.ZIndex = 100 -- הכי גבוה שאפשר כדי שיראו את זה
+    flake.ZIndex = 1 -- שינוי קריטי: ZIndex נמוך כדי שיהיה מאחורי הכפתורים והטקסט!
     flake.Name = "SnowFlake"
     
-    -- רנדום סיבוב ושקיפות
+    -- הוספת עובי (Stroke) כדי שייראה "עבה" יותר
+    local stroke = Instance.new("UIStroke", flake)
+    stroke.Thickness = 1.5
+    stroke.Color = Color3.fromRGB(200, 220, 255) -- קו מתאר כחלחל עדין
+    stroke.Transparency = 0.1 -- כמעט לא שקוף
+    
+    -- רנדום סיבוב ושקיפות נמוכה (בולט יותר)
     flake.Rotation = math.random(0, 360)
-    flake.TextTransparency = math.random(2, 5) / 10
+    flake.TextTransparency = math.random(0, 2) / 10 -- כמעט אטום לגמרי
 
     local duration = math.random(3, 6)
     local sway = math.random(-50, 50)
@@ -113,13 +117,13 @@ local function SpawnSnow(parent)
     Debris:AddItem(flake, duration + 0.5)
 end
 
---// 4. מסך טעינה (עם שלג שעובד)
+--// 4. מסך טעינה (עם שלג ברקע)
 local LoadGui = Instance.new("ScreenGui"); LoadGui.Name = "SpaghettiLoading"; LoadGui.Parent = CoreGui
 local LoadBox = Instance.new("Frame", LoadGui)
 LoadBox.Size = UDim2.new(0, 240, 0, 170)
 LoadBox.Position = UDim2.new(0.5, 0, 0.5, 0)
 LoadBox.AnchorPoint = Vector2.new(0.5, 0.5)
-LoadBox.ClipsDescendants = true -- שלג יראה רק בתוך הקופסה
+LoadBox.ClipsDescendants = true 
 LoadBox.BorderSizePixel = 0
 Library:Corner(LoadBox, 20)
 Library:Gradient(LoadBox, Color3.fromRGB(15, 20, 30), Color3.fromRGB(25, 40, 60), 45)
@@ -127,20 +131,20 @@ Library:AddGlow(LoadBox, Settings.Theme.Gold)
 
 local PastaIcon = Instance.new("TextLabel", LoadBox)
 PastaIcon.Size = UDim2.new(1, 0, 0.5, 0); PastaIcon.Position = UDim2.new(0,0,0.1,0)
-PastaIcon.BackgroundTransparency = 1; PastaIcon.Text = "🍝"; PastaIcon.TextSize = 60; PastaIcon.ZIndex = 15
+PastaIcon.BackgroundTransparency = 1; PastaIcon.Text = "🍝"; PastaIcon.TextSize = 60; PastaIcon.ZIndex = 15 -- ZIndex גבוה כדי שיהיה מעל השלג
 local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 TweenService:Create(PastaIcon, tweenInfo, {Rotation = 10, Size = UDim2.new(1.1, 0, 0.55, 0)}):Play()
 
 local TitleLoad = Instance.new("TextLabel", LoadBox)
 TitleLoad.Size = UDim2.new(1, 0, 0.2, 0); TitleLoad.Position = UDim2.new(0, 0, 0.55, 0)
-TitleLoad.BackgroundTransparency = 1; TitleLoad.Text = "Spaghetti Mafia Hub v1"; -- טקסט v1
+TitleLoad.BackgroundTransparency = 1; TitleLoad.Text = "Spaghetti Mafia Hub v1"; 
 TitleLoad.Font = Enum.Font.GothamBlack; TitleLoad.TextColor3 = Settings.Theme.Gold; TitleLoad.TextSize = 20
-TitleLoad.ZIndex = 15
+TitleLoad.ZIndex = 15 -- ZIndex גבוה
 
 local SubLoad = Instance.new("TextLabel", LoadBox)
 SubLoad.Size = UDim2.new(1, 0, 0.2, 0); SubLoad.Position = UDim2.new(0, 0, 0.7, 0)
 SubLoad.BackgroundTransparency = 1; SubLoad.Text = "Loading..."; SubLoad.Font = Enum.Font.Gotham; SubLoad.TextColor3 = Color3.new(1,1,1); SubLoad.TextSize = 14
-SubLoad.ZIndex = 15
+SubLoad.ZIndex = 15 -- ZIndex גבוה
 
 -- לולאת שלג למסך הטעינה
 task.spawn(function()
@@ -181,7 +185,7 @@ local CloseBtn = Instance.new("TextButton", TopBar); CloseBtn.Size = UDim2.new(0
 CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; MiniPasta.Visible = true; Library:Tween(MiniPasta, {Size = UDim2.new(0, 60, 0, 60)}, 0.4, Enum.EasingStyle.Elastic) end)
 MiniPasta.MouseButton1Click:Connect(function() MiniPasta.Visible = false; MainFrame.Visible = true; Library:Tween(MainFrame, {Size = UDim2.new(0, 620, 0, 420)}, 0.4, Enum.EasingStyle.Back) end)
 
---// Sidebar (ללא ActiveLine המרחף, נקי)
+--// Sidebar
 local Sidebar = Instance.new("Frame", MainFrame)
 Sidebar.Size = UDim2.new(0, 160, 1, -60)
 Sidebar.Position = UDim2.new(0,0,0,60)
@@ -385,6 +389,7 @@ FarmTitle.Font = Enum.Font.GothamBlack
 FarmTitle.TextSize = 18
 FarmTitle.TextXAlignment = Enum.TextXAlignment.Left
 FarmTitle.BackgroundTransparency = 1
+FarmTitle.ZIndex = 6 -- מעל השלג
 
 local FarmSwitch = Instance.new("Frame", FarmBtn)
 FarmSwitch.Size = UDim2.new(0, 45, 0, 26)
@@ -418,6 +423,7 @@ BalanceLabel.Font=Enum.Font.GothamBlack
 BalanceLabel.TextSize=14
 BalanceLabel.BackgroundTransparency=1
 BalanceLabel.LayoutOrder = 2
+BalanceLabel.ZIndex = 6
 
 local BalanceContainer = Instance.new("Frame", Tab_Farm_Scroll)
 BalanceContainer.Size = UDim2.new(0.95, 0, 0, 70)
@@ -429,12 +435,12 @@ BalanceGrid.CellPadding = UDim2.new(0.04, 0, 0, 0)
 BalanceGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 local TotBlues = Instance.new("Frame", BalanceContainer); TotBlues.BackgroundColor3 = Color3.fromRGB(15, 30, 50); Library:Corner(TotBlues, 12); local StrokeTotalB = Instance.new("UIStroke", TotBlues); StrokeTotalB.Color = Settings.Theme.ShardBlue; StrokeTotalB.Thickness = 1.2; StrokeTotalB.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-local T_TitleB = Instance.new("TextLabel", TotBlues); T_TitleB.Size = UDim2.new(1,0,0.3,0); T_TitleB.Position=UDim2.new(0,0,0.15,0); T_TitleB.BackgroundTransparency=1; T_TitleB.Text="כחולים 🧊"; T_TitleB.TextColor3=Settings.Theme.ShardBlue; T_TitleB.Font=Enum.Font.GothamBold; T_TitleB.TextSize=14
-local T_ValB = Instance.new("TextLabel", TotBlues); T_ValB.Size = UDim2.new(1,0,0.5,0); T_ValB.Position=UDim2.new(0,0,0.45,0); T_ValB.BackgroundTransparency=1; T_ValB.Text="..."; T_ValB.TextColor3=Color3.new(1,1,1); T_ValB.Font=Enum.Font.GothamBlack; T_ValB.TextSize=22
+local T_TitleB = Instance.new("TextLabel", TotBlues); T_TitleB.Size = UDim2.new(1,0,0.3,0); T_TitleB.Position=UDim2.new(0,0,0.15,0); T_TitleB.BackgroundTransparency=1; T_TitleB.Text="כחולים 🧊"; T_TitleB.TextColor3=Settings.Theme.ShardBlue; T_TitleB.Font=Enum.Font.GothamBold; T_TitleB.TextSize=14; T_TitleB.ZIndex=6
+local T_ValB = Instance.new("TextLabel", TotBlues); T_ValB.Size = UDim2.new(1,0,0.5,0); T_ValB.Position=UDim2.new(0,0,0.45,0); T_ValB.BackgroundTransparency=1; T_ValB.Text="..."; T_ValB.TextColor3=Color3.new(1,1,1); T_ValB.Font=Enum.Font.GothamBlack; T_ValB.TextSize=22; T_ValB.ZIndex=6
 
 local TotReds = Instance.new("Frame", BalanceContainer); TotReds.BackgroundColor3 = Color3.fromRGB(30, 15, 15); Library:Corner(TotReds, 12); local StrokeTotalR = Instance.new("UIStroke", TotReds); StrokeTotalR.Color = Settings.Theme.CrystalRed; StrokeTotalR.Thickness = 1.2; StrokeTotalR.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-local T_TitleR = Instance.new("TextLabel", TotReds); T_TitleR.Size = UDim2.new(1,0,0.3,0); T_TitleR.Position=UDim2.new(0,0,0.15,0); T_TitleR.BackgroundTransparency=1; T_TitleR.Text="אדומים 💎"; T_TitleR.TextColor3=Settings.Theme.CrystalRed; T_TitleR.Font=Enum.Font.GothamBold; T_TitleR.TextSize=14
-local T_ValR = Instance.new("TextLabel", TotReds); T_ValR.Size = UDim2.new(1,0,0.5,0); T_ValR.Position=UDim2.new(0,0,0.45,0); T_ValR.BackgroundTransparency=1; T_ValR.Text="..."; T_ValR.TextColor3=Color3.new(1,1,1); T_ValR.Font=Enum.Font.GothamBlack; T_ValR.TextSize=22
+local T_TitleR = Instance.new("TextLabel", TotReds); T_TitleR.Size = UDim2.new(1,0,0.3,0); T_TitleR.Position=UDim2.new(0,0,0.15,0); T_TitleR.BackgroundTransparency=1; T_TitleR.Text="אדומים 💎"; T_TitleR.TextColor3=Settings.Theme.CrystalRed; T_TitleR.Font=Enum.Font.GothamBold; T_TitleR.TextSize=14; T_TitleR.ZIndex=6
+local T_ValR = Instance.new("TextLabel", TotReds); T_ValR.Size = UDim2.new(1,0,0.5,0); T_ValR.Position=UDim2.new(0,0,0.45,0); T_ValR.BackgroundTransparency=1; T_ValR.Text="..."; T_ValR.TextColor3=Color3.new(1,1,1); T_ValR.Font=Enum.Font.GothamBlack; T_ValR.TextSize=22; T_ValR.ZIndex=6
 
 -- 3. Session Stats
 local StatsLabel = Instance.new("TextLabel", Tab_Farm_Scroll)
@@ -445,6 +451,7 @@ StatsLabel.Font=Enum.Font.GothamBold
 StatsLabel.TextSize=12
 StatsLabel.BackgroundTransparency=1
 StatsLabel.LayoutOrder = 4
+StatsLabel.ZIndex = 6
 
 local StatsContainer = Instance.new("Frame", Tab_Farm_Scroll)
 StatsContainer.Size = UDim2.new(0.95, 0, 0, 70)
@@ -456,12 +463,12 @@ StatsGrid.CellPadding = UDim2.new(0.04, 0, 0, 0)
 StatsGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 local BoxBlue = Instance.new("Frame", StatsContainer); BoxBlue.BackgroundColor3 = Color3.fromRGB(15, 30, 50); Library:Corner(BoxBlue, 12); local StrokeBlue = Instance.new("UIStroke", BoxBlue); StrokeBlue.Color = Settings.Theme.IceBlue; StrokeBlue.Thickness = 1.2
-local TitleBlue = Instance.new("TextLabel", BoxBlue); TitleBlue.Size = UDim2.new(1, 0, 0.3, 0); TitleBlue.Position = UDim2.new(0,0,0.15,0); TitleBlue.BackgroundTransparency = 1; TitleBlue.Text = "כחולים (Session)"; TitleBlue.TextColor3 = Settings.Theme.IceBlue; TitleBlue.Font = Enum.Font.GothamBold; TitleBlue.TextSize = 13
-local ValBlue = Instance.new("TextLabel", BoxBlue); ValBlue.Size = UDim2.new(1, 0, 0.5, 0); ValBlue.Position = UDim2.new(0,0,0.45,0); ValBlue.BackgroundTransparency = 1; ValBlue.Text = "0"; ValBlue.TextColor3 = Color3.new(1, 1, 1); ValBlue.Font = Enum.Font.GothamBlack; ValBlue.TextSize = 22
+local TitleBlue = Instance.new("TextLabel", BoxBlue); TitleBlue.Size = UDim2.new(1, 0, 0.3, 0); TitleBlue.Position = UDim2.new(0,0,0.15,0); TitleBlue.BackgroundTransparency = 1; TitleBlue.Text = "כחולים (Session)"; TitleBlue.TextColor3 = Settings.Theme.IceBlue; TitleBlue.Font = Enum.Font.GothamBold; TitleBlue.TextSize = 13; TitleBlue.ZIndex=6
+local ValBlue = Instance.new("TextLabel", BoxBlue); ValBlue.Size = UDim2.new(1, 0, 0.5, 0); ValBlue.Position = UDim2.new(0,0,0.45,0); ValBlue.BackgroundTransparency = 1; ValBlue.Text = "0"; ValBlue.TextColor3 = Color3.new(1, 1, 1); ValBlue.Font = Enum.Font.GothamBlack; ValBlue.TextSize = 22; ValBlue.ZIndex=6
 
 local BoxRed = Instance.new("Frame", StatsContainer); BoxRed.BackgroundColor3 = Color3.fromRGB(30, 15, 15); Library:Corner(BoxRed, 12); local StrokeRed = Instance.new("UIStroke", BoxRed); StrokeRed.Color = Settings.Theme.CrystalRed; StrokeRed.Thickness = 1.2
-local TitleRed = Instance.new("TextLabel", BoxRed); TitleRed.Size = UDim2.new(1, 0, 0.3, 0); TitleRed.Position = UDim2.new(0,0,0.15,0); TitleRed.BackgroundTransparency = 1; TitleRed.Text = "אדומים (Session)"; TitleRed.TextColor3 = Settings.Theme.CrystalRed; TitleRed.Font = Enum.Font.GothamBold; TitleRed.TextSize = 13
-local ValRed = Instance.new("TextLabel", BoxRed); ValRed.Size = UDim2.new(1, 0, 0.5, 0); ValRed.Position = UDim2.new(0,0,0.45,0); ValRed.BackgroundTransparency = 1; ValRed.Text = "0"; ValRed.TextColor3 = Color3.new(1, 1, 1); ValRed.Font = Enum.Font.GothamBlack; ValRed.TextSize = 22
+local TitleRed = Instance.new("TextLabel", BoxRed); TitleRed.Size = UDim2.new(1, 0, 0.3, 0); TitleRed.Position = UDim2.new(0,0,0.15,0); TitleRed.BackgroundTransparency = 1; TitleRed.Text = "אדומים (Session)"; TitleRed.TextColor3 = Settings.Theme.CrystalRed; TitleRed.Font = Enum.Font.GothamBold; TitleRed.TextSize = 13; TitleRed.ZIndex=6
+local ValRed = Instance.new("TextLabel", BoxRed); ValRed.Size = UDim2.new(1, 0, 0.5, 0); ValRed.Position = UDim2.new(0,0,0.45,0); ValRed.BackgroundTransparency = 1; ValRed.Text = "0"; ValRed.TextColor3 = Color3.new(1, 1, 1); ValRed.Font = Enum.Font.GothamBlack; ValRed.TextSize = 22; ValRed.ZIndex=6
 
 -- 4. AFK Status
 local AFKStatus = Instance.new("TextLabel", Tab_Farm_Scroll)
@@ -473,6 +480,7 @@ AFKStatus.TextColor3 = Color3.new(1, 1, 1)
 AFKStatus.Font = Enum.Font.GothamMedium
 AFKStatus.TextSize = 12
 AFKStatus.LayoutOrder = 6
+AFKStatus.ZIndex = 6
 
 task.spawn(function()
     local CrystalsRef = LocalPlayer:WaitForChild("Crystals", 10)
