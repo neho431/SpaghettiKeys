@@ -202,15 +202,11 @@ local function AddLayout(p)
 end
 AddLayout(Tab_Main); AddLayout(Tab_Sett); AddLayout(Tab_Cred)
 
---================================================================================
---// 8. לוגיקה חווה ואנטי-שיגור (חלק זה הוחלף למערכת חזקה יותר)
---================================================================================
-
+--// 8. לוגיקה חווה ואנטי-שיגור (מערכת משופרת)
 local function GetClosestTarget()
     local drops = Workspace:FindFirstChild("StormDrops")
     if not drops then return nil end
-    local closest, dist = nil, math.huge
-    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local closest, dist = nil, math.huge; local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if hrp then
         for _, v in pairs(drops:GetChildren()) do 
             if v:IsA("BasePart") and not FarmBlacklist[v] then 
@@ -222,53 +218,46 @@ local function GetClosestTarget()
     return closest
 end
 
--- פונקציית אבטחה שרצה בלולאה (Secure Loop)
--- מטפלת ב: Noclip, מניעת ישיבה, וחסימת דלתות/פורטלים אגרסיבית
-local function SecureFarmLoop()
-    if not Settings.Farming then return end
-    
-    local char = LocalPlayer.Character
-    if char then
-        -- 1. Noclip (מעבר דרך קירות)
-        for _, v in pairs(char:GetDescendants()) do 
-            if v:IsA("BasePart") then v.CanCollide = false end 
-        end
-        
-        -- 2. Anti-Sit (מניעת ישיבה)
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then 
-            hum.Sit = false 
-            hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false) 
-        end
-        
-        -- 3. Door Block (חסימת דלתות - גרסה חזקה)
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local region = Region3.new(hrp.Position - Vector3.new(30,30,30), hrp.Position + Vector3.new(30,30,30))
-            local objects = workspace:FindPartsInRegion3(region, nil, 100)
-            for _, part in pairs(objects) do
-                local n = part.Name:lower()
-                -- רשימת מילים שגורמות לשיגור
-                if n:find("door") or n:find("portal") or n:find("tele") or n:find("gate") or n:find("enter") or n:find("zone") or n:find("minigame") then
-                    part.CanTouch = false
-                    pcall(function() if part:FindFirstChild("TouchInterest") then part.TouchInterest:Destroy() end end)
-                end
-            end
+local function UltraSafeDisable()
+    local char = LocalPlayer.Character; local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    for _, part in pairs(char:GetChildren()) do if part:IsA("BasePart") then part.CanTouch = false end end
+    -- ביטול זיהוי נגיעה באזורי טלפורט
+    local region = Region3.new(hrp.Position - Vector3.new(30,30,30), hrp.Position + Vector3.new(30,30,30))
+    local objects = workspace:FindPartsInRegion3(region, nil, 200)
+    for _, part in pairs(objects) do
+        local n = part.Name:lower()
+        if n:find("door") or n:find("portal") or n:find("tele") or n:find("gate") or n:find("enter") or n:find("selection") or n:find("lobby") or n:find("zone") or n:find("minigame") then
+            part.CanTouch = false
+            pcall(function() if part:FindFirstChild("TouchInterest") then part.TouchInterest:Destroy() end end)
         end
     end
 end
 
-local function ToggleFarm(v)
-    Settings.Farming = v
-    if not v then FarmBlacklist = {} end
-
-    if v then
-        -- הפעלה: חיבור לולאת האבטחה
+local function EnableNoclip(bool)
+    if bool then
         if not FarmConnection then
-            FarmConnection = RunService.Stepped:Connect(SecureFarmLoop)
+            FarmConnection = RunService.Stepped:Connect(function()
+                if LocalPlayer.Character and Settings.Farming then
+                    for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
+                    local hum = LocalPlayer.Character:FindFirstChild("Humanoid"); if hum then hum.Sit = false; hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false) end
+                    UltraSafeDisable() 
+                end
+            end)
         end
-        
-        -- לולאת האיסוף (Auto Farm Loop)
+    else
+        if FarmConnection then FarmConnection:Disconnect(); FarmConnection = nil end
+        if LocalPlayer.Character then 
+            for _, part in pairs(LocalPlayer.Character:GetChildren()) do if part:IsA("BasePart") then part.CanTouch = true end end
+            if LocalPlayer.Character:FindFirstChild("Humanoid") then LocalPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true) end 
+        end
+    end
+end
+
+-- פונקציית חווה משודרגת (מהירה יותר עם FireTouchInterest)
+local function ToggleFarm(v)
+    Settings.Farming = v; EnableNoclip(v); if not v then FarmBlacklist = {} end
+    if v then
         task.spawn(function()
             while Settings.Farming do
                 local char = LocalPlayer.Character
@@ -277,46 +266,37 @@ local function ToggleFarm(v)
                 
                 if char and hrp and target and Settings.Farming then
                     local distance = (hrp.Position - target.Position).Magnitude
+                    
+                    -- תנועה מהירה יותר
                     local info = TweenInfo.new(distance / Settings.FarmSpeed, Enum.EasingStyle.Linear)
                     local tween = TweenService:Create(hrp, info, {CFrame = target.CFrame})
                     tween:Play()
                     
                     local start = tick()
-                    -- המתנה להגעה ליעד
-                    while Settings.Farming and target.Parent and (tick() - start) < 1.5 do
-                        task.wait()
-                        -- אם קרובים, מגע אגרסיבי
+                    while Settings.Farming and target.Parent and (tick() - start) < 1.5 do -- זמן המתנה מקוצר
+                        task.wait() -- בדיקה מהירה
+                        
+                        -- אם קרוב מספיק, הפעלת מגע אגרסיבית
                         if (hrp.Position - target.Position).Magnitude < 10 then
+                            -- שימוש ב-firetouchinterest אם קיים (חזק מאוד)
                             if firetouchinterest then
                                 firetouchinterest(target, hrp, 0)
                                 firetouchinterest(target, hrp, 1)
                             end
+                            -- גיבוי: נגיעה רגילה
                             target.CanTouch = true
                         end
+
                         if not target.Parent then break end
                     end
+                    
                     if target.Parent then tween:Cancel(); FarmBlacklist[target] = true end
                 else
-                    task.wait(0.1)
+                    task.wait(0.1) 
                 end
                 task.wait()
             end
         end)
-    else
-        -- כיבוי: ניתוק לולאת האבטחה
-        if FarmConnection then 
-            FarmConnection:Disconnect() 
-            FarmConnection = nil 
-        end
-        
-        -- החזרת המצב לקדמותו (Collisions, Seated State)
-        if LocalPlayer.Character then
-            for _, part in pairs(LocalPlayer.Character:GetChildren()) do 
-                if part:IsA("BasePart") then part.CanTouch = true; part.CanCollide = true end 
-            end
-            local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
-            if hum then hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true) end
-        end
     end
 end
 
@@ -757,4 +737,3 @@ RunService.RenderStepped:Connect(function()
 end)
 
 print("[SYSTEM] Spaghetti Mafia Hub Loaded Successfully.")
-
