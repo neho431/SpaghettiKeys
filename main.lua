@@ -3,7 +3,7 @@
     Branding: "עולם הכיף"
     Updates: GitHub Whitelist System (Auto-Boot), Anti-AFK, Anti-Server Hop.
     
-    MODIFIED: Event Tab V4 (Fixed Layout + Robust Data Finder)
+    MODIFIED: Event Tab V5 (Stronger Farm + Fixed Data Layout)
 ]]
 
 local Players = game:GetService("Players")
@@ -70,7 +70,7 @@ local Settings = {
     Fly = { Enabled = false, Speed = 50 },
     Speed = { Enabled = false, Value = 16 },
     Farming = false,
-    FarmSpeed = 300,
+    FarmSpeed = 120, -- מהירות מוגברת לחווה החדשה
     Scale = 1
 }
 
@@ -180,15 +180,12 @@ local Container = Instance.new("Frame", MainFrame); Container.Size = UDim2.new(1
 local currentTab = nil
 local function CreateTab(name, heb)
     local btn = Instance.new("TextButton", Sidebar); btn.Size = UDim2.new(0.9,0,0,40); btn.BackgroundColor3 = Settings.Theme.Dark; btn.Text = name .. "\n<font size='11' color='#AAAAAA'>"..heb.."</font>"; btn.RichText = true; btn.TextColor3 = Color3.fromRGB(150,150,150); btn.Font = Enum.Font.GothamBold; btn.TextSize = 14; btn.ZIndex = 3; Library:Corner(btn, 6)
-    
     local page = Instance.new("Frame", Container); page.Size = UDim2.new(1,0,1,0); page.BackgroundTransparency = 1; page.Visible = false
-    
     btn.MouseButton1Click:Connect(function()
         for _,v in pairs(Sidebar:GetChildren()) do if v:IsA("TextButton") then Library:Tween(v, {BackgroundColor3 = Settings.Theme.Dark, TextColor3 = Color3.fromRGB(150,150,150)}) end end
         for _,v in pairs(Container:GetChildren()) do v.Visible = false end
         Library:Tween(btn, {BackgroundColor3 = Settings.Theme.Gold, TextColor3 = Color3.new(0,0,0)}); page.Visible = true
     end)
-    
     if not currentTab then currentTab = btn; Library:Tween(btn, {BackgroundColor3 = Settings.Theme.Gold, TextColor3 = Color3.new(0,0,0)}); page.Visible = true end
     return page
 end
@@ -205,13 +202,18 @@ local function AddLayout(p)
 end
 AddLayout(Tab_Main); AddLayout(Tab_Sett); AddLayout(Tab_Cred)
 
---// 8. לוגיקה חווה ואנטי-שיגור
+--// 8. לוגיקה חווה ואנטי-שיגור (מערכת משופרת)
 local function GetClosestTarget()
     local drops = Workspace:FindFirstChild("StormDrops")
     if not drops then return nil end
     local closest, dist = nil, math.huge; local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if hrp then
-        for _, v in pairs(drops:GetChildren()) do if v:IsA("BasePart") and not FarmBlacklist[v] then local mag = (hrp.Position - v.Position).Magnitude if mag < dist then dist = mag; closest = v end end end
+        for _, v in pairs(drops:GetChildren()) do 
+            if v:IsA("BasePart") and not FarmBlacklist[v] then 
+                local mag = (hrp.Position - v.Position).Magnitude 
+                if mag < dist then dist = mag; closest = v end 
+            end 
+        end
     end
     return closest
 end
@@ -220,6 +222,7 @@ local function UltraSafeDisable()
     local char = LocalPlayer.Character; local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     for _, part in pairs(char:GetChildren()) do if part:IsA("BasePart") then part.CanTouch = false end end
+    -- ביטול זיהוי נגיעה באזורי טלפורט
     local region = Region3.new(hrp.Position - Vector3.new(30,30,30), hrp.Position + Vector3.new(30,30,30))
     local objects = workspace:FindPartsInRegion3(region, nil, 200)
     for _, part in pairs(objects) do
@@ -251,17 +254,46 @@ local function EnableNoclip(bool)
     end
 end
 
+-- פונקציית חווה משודרגת (מהירה יותר עם FireTouchInterest)
 local function ToggleFarm(v)
     Settings.Farming = v; EnableNoclip(v); if not v then FarmBlacklist = {} end
     if v then
         task.spawn(function()
             while Settings.Farming do
-                local char = LocalPlayer.Character; local hrp = char and char:FindFirstChild("HumanoidRootPart"); local target = GetClosestTarget()
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                local target = GetClosestTarget()
+                
                 if char and hrp and target and Settings.Farming then
-                    local distance = (hrp.Position - target.Position).Magnitude; local info = TweenInfo.new(distance / Settings.FarmSpeed, Enum.EasingStyle.Linear); local tween = TweenService:Create(hrp, info, {CFrame = target.CFrame}); tween:Play()
-                    local start = tick(); while Settings.Farming and target.Parent and (tick() - start) < 2 do task.wait(0.1) if (hrp.Position - target.Position).Magnitude < 3 then task.wait(0.3) if target.Parent then break end end end
+                    local distance = (hrp.Position - target.Position).Magnitude
+                    
+                    -- תנועה מהירה יותר
+                    local info = TweenInfo.new(distance / Settings.FarmSpeed, Enum.EasingStyle.Linear)
+                    local tween = TweenService:Create(hrp, info, {CFrame = target.CFrame})
+                    tween:Play()
+                    
+                    local start = tick()
+                    while Settings.Farming and target.Parent and (tick() - start) < 1.5 do -- זמן המתנה מקוצר
+                        task.wait() -- בדיקה מהירה
+                        
+                        -- אם קרוב מספיק, הפעלת מגע אגרסיבית
+                        if (hrp.Position - target.Position).Magnitude < 10 then
+                            -- שימוש ב-firetouchinterest אם קיים (חזק מאוד)
+                            if firetouchinterest then
+                                firetouchinterest(target, hrp, 0)
+                                firetouchinterest(target, hrp, 1)
+                            end
+                            -- גיבוי: נגיעה רגילה
+                            target.CanTouch = true
+                        end
+
+                        if not target.Parent then break end
+                    end
+                    
                     if target.Parent then tween:Cancel(); FarmBlacklist[target] = true end
-                else task.wait(0.5) end
+                else
+                    task.wait(0.1) 
+                end
                 task.wait()
             end
         end)
@@ -322,10 +354,10 @@ local function CreateSquareBind(parent, id, title, heb, default, callback)
 end
 
 --================================================================================
---// 9. בניית התוכן החדש של Tab_Farm (❄️ Event) - V4: REORDERED + ROBUST DATA
+--// 9. בניית התוכן החדש של Tab_Farm (❄️ Event) - V5: FIXED LAYOUT + DEBUG
 --================================================================================
 
--- יצירת ScrollingFrame בתוך הטאב
+-- יצירת ScrollingFrame
 local Tab_Farm = Instance.new("ScrollingFrame", Tab_Farm_Page)
 Tab_Farm.Size = UDim2.new(1, 0, 1, 0)
 Tab_Farm.BackgroundTransparency = 1
@@ -335,7 +367,7 @@ Tab_Farm.AutomaticCanvasSize = Enum.AutomaticSize.Y
 Tab_Farm.CanvasSize = UDim2.new(0,0,0,0)
 Tab_Farm.BorderSizePixel = 0
 
--- עיצוב רקע ייחודי לטאב (גרדיאנט חורפי)
+-- גרדיאנט חורפי
 local EventGradient = Instance.new("UIGradient", Tab_Farm_Page)
 EventGradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(20,20,25)), 
@@ -343,14 +375,14 @@ EventGradient.Color = ColorSequence.new{
 }
 EventGradient.Rotation = 45
 
--- 1. פריסת הרשימה הראשית בתוך הטאב הנגלל
+-- 1. פריסת הרשימה
 local EventLayout = Instance.new("UIListLayout", Tab_Farm)
 EventLayout.Padding = UDim.new(0, 15)
 EventLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 EventLayout.SortOrder = Enum.SortOrder.LayoutOrder
 local EventPad = Instance.new("UIPadding", Tab_Farm); EventPad.PaddingTop = UDim.new(0,10); EventPad.PaddingBottom = UDim.new(0,20)
 
--- 2. Toggle Auto Farm (בראש הדף)
+-- 2. Toggle Auto Farm
 local FarmBtn = Instance.new("TextButton", Tab_Farm)
 FarmBtn.Size = UDim2.new(0.95, 0, 0, 70)
 FarmBtn.BackgroundColor3 = Settings.Theme.IceDark 
@@ -403,7 +435,7 @@ FarmBtn.MouseButton1Click:Connect(function()
     ToggleFarm(isFarming)
 end)
 
--- 3. Anti-AFK Status
+-- 3. Anti-AFK
 local AFKStatus = Instance.new("TextLabel", Tab_Farm)
 AFKStatus.Size = UDim2.new(0.95, 0, 0, 20)
 AFKStatus.BackgroundTransparency = 1
@@ -414,7 +446,7 @@ AFKStatus.Font = Enum.Font.GothamMedium
 AFKStatus.TextSize = 13
 AFKStatus.LayoutOrder = 2
 
--- 4. מוני איסוף צבעוניים (SESSION STATS)
+-- 4. מוני איסוף צבעוניים (SESSION)
 local StatsLabel = Instance.new("TextLabel", Tab_Farm)
 StatsLabel.Size = UDim2.new(0.95,0,0,20); StatsLabel.Text = "Session Collected (איסוף נוכחי) 📥"; StatsLabel.TextColor3 = Color3.fromRGB(180,180,180); StatsLabel.Font=Enum.Font.GothamBold; StatsLabel.TextSize=12; StatsLabel.BackgroundTransparency=1; StatsLabel.LayoutOrder=3
 
@@ -428,7 +460,7 @@ StatsGrid.CellSize = UDim2.new(0.48, 0, 1, 0)
 StatsGrid.CellPadding = UDim2.new(0.04, 0, 0, 0)
 StatsGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- SHARDS (SESSION)
+-- SHARDS
 local BoxBlue = Instance.new("Frame", StatsContainer)
 BoxBlue.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
 Library:Corner(BoxBlue, 12)
@@ -457,7 +489,7 @@ ValBlue.Font = Enum.Font.GothamBlack
 ValBlue.TextSize = 30
 ValBlue.TextYAlignment = Enum.TextYAlignment.Center
 
--- CRYSTALS (SESSION)
+-- CRYSTALS
 local BoxRed = Instance.new("Frame", StatsContainer)
 BoxRed.BackgroundColor3 = Color3.fromRGB(30, 15, 15)
 Library:Corner(BoxRed, 12)
@@ -486,7 +518,7 @@ ValRed.Font = Enum.Font.GothamBlack
 ValRed.TextSize = 30
 ValRed.TextYAlignment = Enum.TextYAlignment.Center
 
--- 5. TOTAL BALANCE (הועלה למעלה)
+-- 5. TOTAL BALANCE (הועלה למעלה - שופר מיקום)
 local BalanceLabel = Instance.new("TextLabel", Tab_Farm)
 BalanceLabel.Size = UDim2.new(0.95,0,0,25); BalanceLabel.Text = "Total Balance (סה''כ בתיק) 💰"; BalanceLabel.TextColor3 = Color3.fromRGB(255, 215, 0); BalanceLabel.Font=Enum.Font.GothamBlack; BalanceLabel.TextSize=14; BalanceLabel.BackgroundTransparency=1; BalanceLabel.LayoutOrder=5
 
@@ -522,7 +554,7 @@ T_TitleC.Size = UDim2.new(1,0,0.3,0); T_TitleC.BackgroundTransparency=1; T_Title
 local T_ValC = Instance.new("TextLabel", TotCrystals)
 T_ValC.Size = UDim2.new(1,0,0.7,0); T_ValC.Position=UDim2.new(0,0,0.3,0); T_ValC.BackgroundTransparency=1; T_ValC.Text="..."; T_ValC.TextColor3=Color3.new(1,1,1); T_ValC.Font=Enum.Font.GothamMedium; T_ValC.TextSize=18; T_ValC.TextYAlignment=Enum.TextYAlignment.Top
 
--- 6. LAST STORM (הורד למטה)
+-- 6. LAST STORM (הורד לתחתית)
 local SummaryFrame = Instance.new("Frame", Tab_Farm)
 SummaryFrame.Size = UDim2.new(0.95, 0, 0, 60)
 SummaryFrame.BackgroundColor3 = Settings.Theme.Box
@@ -556,41 +588,58 @@ TxtTotalSession.Font = Enum.Font.GothamBold
 TxtTotalSession.TextSize = 14
 TxtTotalSession.TextXAlignment = Enum.TextXAlignment.Left
 
---// לוגיקה ומעקב נתונים (Robust Infinite Loop)
+--// לוגיקה חכמה לחיפוש נתונים (תמיכה ב-NX3HO ו-Leaderstats)
 task.spawn(function()
     T_ValS.Text = "Searching..."
     T_ValC.Text = "Searching..."
 
-    -- לולאה שלא מוותרת עד שמוצאת את התיקייה
     local DataFolder = nil
+    
+    -- לולאה שלא עוצרת עד שמוצאת נתונים
     while not DataFolder do
-        -- 1. בדיקה ראשית: NX3HO
+        -- ניסיון 1: חיפוש תיקייה ייעודית
         if LocalPlayer:FindFirstChild("NX3HO") then
             DataFolder = LocalPlayer.NX3HO
-        -- 2. בדיקת גיבוי: leaderstats (למקרה שהשם שונה במשחק)
-        elseif LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Crystals") then
-            DataFolder = LocalPlayer.leaderstats
+            print("[DEBUG] Found NX3HO folder.")
+        
+        -- ניסיון 2: חיפוש ב-leaderstats
+        elseif LocalPlayer:FindFirstChild("leaderstats") then
+            -- וידוא שיש בפנים את הערכים הנכונים
+            if LocalPlayer.leaderstats:FindFirstChild("Crystals") or LocalPlayer.leaderstats:FindFirstChild("Shards") then
+                DataFolder = LocalPlayer.leaderstats
+                print("[DEBUG] Found leaderstats folder.")
+            end
+        end
+
+        if not DataFolder then
+            -- ניסיון 3: חיפוש עמוק (למקרה שהשם שונה)
+            for _, child in pairs(LocalPlayer:GetChildren()) do
+                if child:IsA("Folder") and (child:FindFirstChild("Crystals") or child:FindFirstChild("Shards")) then
+                    DataFolder = child
+                    print("[DEBUG] Found custom data folder: " .. child.Name)
+                    break
+                end
+            end
         end
         
         if not DataFolder then
-            T_ValS.Text = "Syncing..."
-            T_ValC.Text = "Syncing..."
-            task.wait(1.5) -- נסה שוב עוד רגע
+            T_ValS.Text = "Retrying..."
+            T_ValC.Text = "Retrying..."
+            task.wait(1.5)
         end
     end
     
-    -- נמצאה תיקייה!
-    print("[SYSTEM] Data Folder Found: " .. DataFolder.Name)
-    T_ValS.Text = "Loading..."
-    T_ValC.Text = "Loading..."
+    T_ValS.Text = "Syncing..."
+    T_ValC.Text = "Syncing..."
 
-    -- המתנה לערכים עצמם בתוך התיקייה
-    local CrystalsRef = DataFolder:WaitForChild("Crystals", 30)
-    local ShardsRef = DataFolder:WaitForChild("Shards", 30)
+    -- מציאת הערכים בתוך התיקייה שנמצאה
+    local CrystalsRef = DataFolder:FindFirstChild("Crystals") or DataFolder:FindFirstChild("crystals")
+    local ShardsRef = DataFolder:FindFirstChild("Shards") or DataFolder:FindFirstChild("shards")
 
     if not CrystalsRef or not ShardsRef then 
-        T_ValS.Text = "Error"
-        T_ValC.Text = "Error"
+        T_ValS.Text = "Not Found"
+        T_ValC.Text = "Not Found"
+        warn("[DEBUG] Folder found but values are missing!")
         return 
     end
 
@@ -599,21 +648,20 @@ task.spawn(function()
 
     local SessionCrystals = 0
     local SessionShards = 0
-    
     local StormCrystals = 0
     local StormShards = 0
 
     while true do
-        task.wait(0.5) 
+        task.wait(0.3) -- רענון מהיר
         
         local CurrentCrystals = CrystalsRef.Value
         local CurrentShards = ShardsRef.Value
 
-        -- 1. עדכון Balance (סה"כ בתיק)
+        -- 1. עדכון Balance
         T_ValS.Text = tostring(CurrentShards)
         T_ValC.Text = tostring(CurrentCrystals)
 
-        -- 2. חישוב הפרש קריסטלים (SESSION)
+        -- 2. חישובים
         if CurrentCrystals > LastCrystals then
             local diff = CurrentCrystals - LastCrystals
             SessionCrystals = SessionCrystals + diff
@@ -623,7 +671,6 @@ task.spawn(function()
         end
         LastCrystals = CurrentCrystals
 
-        -- 3. חישוב הפרש שארדס (SESSION)
         if CurrentShards > LastShards then
             local diff = CurrentShards - LastShards
             SessionShards = SessionShards + diff
@@ -633,9 +680,9 @@ task.spawn(function()
         end
         LastShards = CurrentShards
 
-        -- עדכון תצוגת ה-Session
-        ValBlue.Text = tostring(SessionShards) -- Shards
-        ValRed.Text = tostring(SessionCrystals) -- Crystals
+        -- עדכון תצוגה
+        ValBlue.Text = tostring(SessionShards)
+        ValRed.Text = tostring(SessionCrystals)
 
         local totalStorm = StormCrystals + StormShards
         local totalSession = SessionCrystals + SessionShards
