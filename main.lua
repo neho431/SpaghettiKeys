@@ -3,7 +3,7 @@
     Branding: "עולם הכיף"
     Updates: GitHub Whitelist System (Auto-Boot), Anti-AFK, Anti-Server Hop.
     
-    MODIFIED: Custom Event Tab (Ice Theme) + Stats Tracking
+    MODIFIED: Custom Event Tab (Ice Theme V2 - Balance Added + Visual Fixes)
 ]]
 
 local Players = game:GetService("Players")
@@ -56,8 +56,10 @@ local Settings = {
         Dark = Color3.fromRGB(10, 10, 10),
         Box = Color3.fromRGB(18, 18, 18),
         Text = Color3.fromRGB(255, 255, 255),
-        Ice = Color3.fromRGB(135, 206, 250), -- צבע קרח חדש
-        IceDark = Color3.fromRGB(25, 40, 50)
+        Ice = Color3.fromRGB(135, 206, 250), -- צבע קרח
+        IceDark = Color3.fromRGB(20, 30, 40),
+        ShardBlue = Color3.fromRGB(0, 190, 255), -- צבע שארדס
+        CrystalRed = Color3.fromRGB(255, 60, 60) -- צבע קריסטלים
     },
     Keys = {
         Menu = Enum.KeyCode.RightControl,
@@ -187,20 +189,19 @@ local function CreateTab(name, heb)
     return page
 end
 
---// שינוי שם הטאב ל-Event ושינוי משתנה פנימי לשימוש בהמשך
+--// הגדרת הטאבים
 local Tab_Farm = CreateTab("❄️ Event", "אירוע חורף")
 local Tab_Main = CreateTab("Main", "ראשי")
 local Tab_Sett = CreateTab("Settings", "הגדרות")
 local Tab_Cred = CreateTab("Credits", "קרדיטים")
 
--- לא מוסיף Layout אוטומטי ל-Tab_Farm כי אנחנו בונים אותו ידנית, לאחרים כן:
 local function AddLayout(p) 
     local l = Instance.new("UIListLayout", p); l.Padding = UDim.new(0,12); l.HorizontalAlignment = Enum.HorizontalAlignment.Center 
     local pad = Instance.new("UIPadding", p); pad.PaddingTop = UDim.new(0,10)
 end
 AddLayout(Tab_Main); AddLayout(Tab_Sett); AddLayout(Tab_Cred)
 
---// 8. לוגיקה חווה ואנטי-שיגור (מוגדר לפני הבנייה כדי שהכפתור יזהה)
+--// 8. לוגיקה חווה ואנטי-שיגור (מוגדר לפני הבנייה)
 local function GetClosestTarget()
     local drops = Workspace:FindFirstChild("StormDrops")
     if not drops then return nil end
@@ -280,7 +281,7 @@ local function ToggleFly(v)
     else if hrp:FindFirstChild("F_V") then hrp.F_V:Destroy() end; if hrp:FindFirstChild("F_G") then hrp.F_G:Destroy() end; hum.PlatformStand=false end
 end
 
---// 7. פונקציות רכיבים כלליים (עבור שאר הטאבים)
+--// 7. פונקציות רכיבים כלליים
 local function CreateSlider(parent, title, heb, min, max, default, callback, toggleCallback, toggleName, isDecimal)
     local f = Instance.new("Frame", parent); f.Size = UDim2.new(0.95,0,0,75); f.BackgroundColor3 = Settings.Theme.Box; Library:Corner(f, 8); Library:AddGlow(f, Color3.fromRGB(40,40,40))
     local l = Instance.new("TextLabel", f); l.Size = UDim2.new(0.7,0,0,25); l.Position = UDim2.new(0,10,0,8); l.Text = title .. " <font size='12' color='#999999'>("..heb..")</font> : " .. default; l.RichText=true; l.TextColor3=Color3.new(1,1,1); l.Font=Enum.Font.GothamBold; l.TextSize=14; l.TextXAlignment=Enum.TextXAlignment.Left; l.BackgroundTransparency=1
@@ -317,8 +318,17 @@ local function CreateSquareBind(parent, id, title, heb, default, callback)
 end
 
 --================================================================================
---// 9. בניית התוכן החדש של Tab_Farm (❄️ Event)
+--// 9. בניית התוכן החדש של Tab_Farm (❄️ Event) - V2 UPDATED
 --================================================================================
+
+-- עיצוב רקע ייחודי לטאב (גרדיאנט חורפי)
+local EventGradient = Instance.new("UIGradient", Tab_Farm)
+EventGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.new(1,1,1)), 
+    ColorSequenceKeypoint.new(1, Settings.Theme.Ice)
+}
+EventGradient.Transparency = NumberSequence.new(0.9, 0.8)
+EventGradient.Rotation = 45
 
 -- 1. פריסת הרשימה הראשית בתוך הטאב
 local EventLayout = Instance.new("UIListLayout", Tab_Farm)
@@ -330,17 +340,17 @@ local EventPad = Instance.new("UIPadding", Tab_Farm); EventPad.PaddingTop = UDim
 -- 2. Toggle Auto Farm (בראש הדף)
 local FarmBtn = Instance.new("TextButton", Tab_Farm)
 FarmBtn.Size = UDim2.new(0.95, 0, 0, 60)
-FarmBtn.BackgroundColor3 = Settings.Theme.IceDark -- כהה אך עם גוון כחול
+FarmBtn.BackgroundColor3 = Settings.Theme.IceDark 
 FarmBtn.Text = ""
 FarmBtn.AutoButtonColor = false
 FarmBtn.LayoutOrder = 1
 Library:Corner(FarmBtn, 8)
-Library:AddGlow(FarmBtn, Settings.Theme.Ice) -- זוהר כחול קרח
+Library:AddGlow(FarmBtn, Settings.Theme.Ice) 
 
 local FarmTitle = Instance.new("TextLabel", FarmBtn)
 FarmTitle.Size = UDim2.new(1, -50, 1, 0)
 FarmTitle.Position = UDim2.new(0, 15, 0, 0)
-FarmTitle.Text = "Toggle Auto Farm\n<font size='12' color='#ADD8E6'>הפעלת חווה אוטומטית</font>"
+FarmTitle.Text = "Toggle Auto Farm ❄️\n<font size='12' color='#ADD8E6'>הפעלת חווה אוטומטית</font>"
 FarmTitle.RichText = true
 FarmTitle.TextColor3 = Settings.Theme.Ice
 FarmTitle.Font = Enum.Font.GothamBold
@@ -367,97 +377,101 @@ FarmBtn.MouseButton1Click:Connect(function()
         FarmBtn.UIStroke.Color = Settings.Theme.Ice
     end
     ToggleFarm(isFarming)
-    VisualToggles["Farm"] = function(v) 
-        -- עדכון חיצוני אם צריך
-    end 
 end)
 
 -- 3. Anti-AFK Status (שורה ירוקה)
 local AFKStatus = Instance.new("TextLabel", Tab_Farm)
 AFKStatus.Size = UDim2.new(0.95, 0, 0, 20)
 AFKStatus.BackgroundTransparency = 1
-AFKStatus.Text = "Anti-AFK: <font color='#00FF00'>Active</font>"
+AFKStatus.Text = "Anti-AFK System: <font color='#00FF00'>Active</font> ⚡"
 AFKStatus.RichText = true
 AFKStatus.TextColor3 = Color3.new(1, 1, 1)
 AFKStatus.Font = Enum.Font.Gotham
 AFKStatus.TextSize = 13
 AFKStatus.LayoutOrder = 2
 
--- 4. מוני איסוף צבעוניים (שניים בשורה אחת)
+-- 4. מוני איסוף צבעוניים (SESSION STATS)
+local StatsLabel = Instance.new("TextLabel", Tab_Farm)
+StatsLabel.Size = UDim2.new(0.95,0,0,15); StatsLabel.Text = "Session Collected (איסוף נוכחי) 📥"; StatsLabel.TextColor3 = Color3.fromRGB(150,150,150); StatsLabel.Font=Enum.Font.GothamBold; StatsLabel.TextSize=12; StatsLabel.BackgroundTransparency=1; StatsLabel.LayoutOrder=3
+
 local StatsContainer = Instance.new("Frame", Tab_Farm)
 StatsContainer.Size = UDim2.new(0.95, 0, 0, 80)
 StatsContainer.BackgroundTransparency = 1
-StatsContainer.LayoutOrder = 3
+StatsContainer.LayoutOrder = 4
 
 local StatsGrid = Instance.new("UIGridLayout", StatsContainer)
 StatsGrid.CellSize = UDim2.new(0.48, 0, 1, 0)
 StatsGrid.CellPadding = UDim2.new(0.04, 0, 0, 0)
 StatsGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- ריבוע כחול (Crystals)
+-- ריבוע כחול (SHARDS) - SESSION
 local BoxBlue = Instance.new("Frame", StatsContainer)
 BoxBlue.BackgroundColor3 = Color3.fromRGB(10, 20, 30)
 Library:Corner(BoxBlue, 8)
 local StrokeBlue = Instance.new("UIStroke", BoxBlue)
-StrokeBlue.Color = Color3.fromRGB(0, 150, 255)
+StrokeBlue.Color = Settings.Theme.ShardBlue
 StrokeBlue.Thickness = 1.5
 StrokeBlue.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 local TitleBlue = Instance.new("TextLabel", BoxBlue)
 TitleBlue.Size = UDim2.new(1, 0, 0.3, 0)
+TitleBlue.Position = UDim2.new(0,0,0.1,0)
 TitleBlue.BackgroundTransparency = 1
-TitleBlue.Text = "Crystals"
-TitleBlue.TextColor3 = Color3.fromRGB(0, 150, 255)
+TitleBlue.Text = "Shards 🧊"
+TitleBlue.TextColor3 = Settings.Theme.ShardBlue
 TitleBlue.Font = Enum.Font.GothamBold
-TitleBlue.TextSize = 14
-TitleBlue.TextYAlignment = Enum.TextYAlignment.Bottom
+TitleBlue.TextSize = 15
+TitleBlue.TextYAlignment = Enum.TextYAlignment.Center
 
 local ValBlue = Instance.new("TextLabel", BoxBlue)
-ValBlue.Size = UDim2.new(1, 0, 0.7, 0)
+ValBlue.Size = UDim2.new(1, 0, 0.5, 0)
+ValBlue.Position = UDim2.new(0,0,0.4,0)
 ValBlue.BackgroundTransparency = 1
 ValBlue.Text = "0"
 ValBlue.TextColor3 = Color3.new(1, 1, 1)
 ValBlue.Font = Enum.Font.GothamBlack
-ValBlue.TextSize = 26
+ValBlue.TextSize = 28
 ValBlue.TextYAlignment = Enum.TextYAlignment.Center
 
--- ריבוע אדום (Shards)
+-- ריבוע אדום (CRYSTALS) - SESSION
 local BoxRed = Instance.new("Frame", StatsContainer)
 BoxRed.BackgroundColor3 = Color3.fromRGB(20, 10, 10)
 Library:Corner(BoxRed, 8)
 local StrokeRed = Instance.new("UIStroke", BoxRed)
-StrokeRed.Color = Color3.fromRGB(255, 80, 80)
+StrokeRed.Color = Settings.Theme.CrystalRed
 StrokeRed.Thickness = 1.5
 StrokeRed.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 local TitleRed = Instance.new("TextLabel", BoxRed)
 TitleRed.Size = UDim2.new(1, 0, 0.3, 0)
+TitleRed.Position = UDim2.new(0,0,0.1,0)
 TitleRed.BackgroundTransparency = 1
-TitleRed.Text = "Shards"
-TitleRed.TextColor3 = Color3.fromRGB(255, 80, 80)
+TitleRed.Text = "Crystals 💎"
+TitleRed.TextColor3 = Settings.Theme.CrystalRed
 TitleRed.Font = Enum.Font.GothamBold
-TitleRed.TextSize = 14
-TitleRed.TextYAlignment = Enum.TextYAlignment.Bottom
+TitleRed.TextSize = 15
+TitleRed.TextYAlignment = Enum.TextYAlignment.Center
 
 local ValRed = Instance.new("TextLabel", BoxRed)
-ValRed.Size = UDim2.new(1, 0, 0.7, 0)
+ValRed.Size = UDim2.new(1, 0, 0.5, 0)
+ValRed.Position = UDim2.new(0,0,0.4,0)
 ValRed.BackgroundTransparency = 1
 ValRed.Text = "0"
 ValRed.TextColor3 = Color3.new(1, 1, 1)
 ValRed.Font = Enum.Font.GothamBlack
-ValRed.TextSize = 26
+ValRed.TextSize = 28
 ValRed.TextYAlignment = Enum.TextYAlignment.Center
 
--- 5. שורות סיכום
+-- 5. שורות סיכום (Summary)
 local SummaryFrame = Instance.new("Frame", Tab_Farm)
-SummaryFrame.Size = UDim2.new(0.95, 0, 0, 60)
+SummaryFrame.Size = UDim2.new(0.95, 0, 0, 40) -- הקטנתי קצת כדי לחסוך מקום
 SummaryFrame.BackgroundColor3 = Settings.Theme.Box
-SummaryFrame.LayoutOrder = 4
+SummaryFrame.LayoutOrder = 5
 Library:Corner(SummaryFrame, 6)
 Library:AddGlow(SummaryFrame, Color3.fromRGB(50,50,60))
 
 local SumLayout = Instance.new("UIListLayout", SummaryFrame)
-SumLayout.Padding = UDim.new(0, 5)
+SumLayout.Padding = UDim.new(0, 2)
 SumLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 SumLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 
@@ -465,30 +479,68 @@ local PadSum = Instance.new("UIPadding", SummaryFrame)
 PadSum.PaddingLeft = UDim.new(0, 15)
 
 local TxtLastStorm = Instance.new("TextLabel", SummaryFrame)
-TxtLastStorm.Size = UDim2.new(1, 0, 0.4, 0)
+TxtLastStorm.Size = UDim2.new(1, 0, 0.45, 0)
 TxtLastStorm.BackgroundTransparency = 1
-TxtLastStorm.Text = "Collected last storm: 0"
+TxtLastStorm.Text = "Last Storm: 0 🌩️"
 TxtLastStorm.TextColor3 = Color3.fromRGB(180, 180, 180)
 TxtLastStorm.Font = Enum.Font.Gotham
-TxtLastStorm.TextSize = 13
+TxtLastStorm.TextSize = 12
 TxtLastStorm.TextXAlignment = Enum.TextXAlignment.Left
 
 local TxtTotalSession = Instance.new("TextLabel", SummaryFrame)
-TxtTotalSession.Size = UDim2.new(1, 0, 0.4, 0)
+TxtTotalSession.Size = UDim2.new(1, 0, 0.45, 0)
 TxtTotalSession.BackgroundTransparency = 1
-TxtTotalSession.Text = "Total Collected (Session): 0"
+TxtTotalSession.Text = "Session Total: 0 📦"
 TxtTotalSession.TextColor3 = Settings.Theme.Ice
 TxtTotalSession.Font = Enum.Font.GothamBold
-TxtTotalSession.TextSize = 13
+TxtTotalSession.TextSize = 12
 TxtTotalSession.TextXAlignment = Enum.TextXAlignment.Left
 
---// לוגיקה ומעקב נתונים (Loop)
+-- 6. ריבועי BALANCE חדשים (TOTAL)
+local BalanceLabel = Instance.new("TextLabel", Tab_Farm)
+BalanceLabel.Size = UDim2.new(0.95,0,0,15); BalanceLabel.Text = "Total Balance (סה''כ בתיק) 💰"; BalanceLabel.TextColor3 = Color3.fromRGB(150,150,150); BalanceLabel.Font=Enum.Font.GothamBold; BalanceLabel.TextSize=12; BalanceLabel.BackgroundTransparency=1; BalanceLabel.LayoutOrder=6
+
+local BalanceContainer = Instance.new("Frame", Tab_Farm)
+BalanceContainer.Size = UDim2.new(0.95, 0, 0, 60)
+BalanceContainer.BackgroundTransparency = 1
+BalanceContainer.LayoutOrder = 7
+
+local BalanceGrid = Instance.new("UIGridLayout", BalanceContainer)
+BalanceGrid.CellSize = UDim2.new(0.48, 0, 1, 0)
+BalanceGrid.CellPadding = UDim2.new(0.04, 0, 0, 0)
+BalanceGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- TOTAL SHARDS (BLUE)
+local TotShards = Instance.new("Frame", BalanceContainer)
+TotShards.BackgroundColor3 = Settings.Theme.Box
+Library:Corner(TotShards, 6)
+Library:AddGlow(TotShards, Settings.Theme.ShardBlue) -- זוהר כחול
+
+local T_TitleS = Instance.new("TextLabel", TotShards)
+T_TitleS.Size = UDim2.new(1,0,0.4,0); T_TitleS.BackgroundTransparency=1; T_TitleS.Text="Total Shards"; T_TitleS.TextColor3=Settings.Theme.ShardBlue; T_TitleS.Font=Enum.Font.GothamBold; T_TitleS.TextSize=11
+local T_ValS = Instance.new("TextLabel", TotShards)
+T_ValS.Size = UDim2.new(1,0,0.6,0); T_ValS.Position=UDim2.new(0,0,0.3,0); T_ValS.BackgroundTransparency=1; T_ValS.Text="Loading..."; T_ValS.TextColor3=Color3.new(1,1,1); T_ValS.Font=Enum.Font.Gotham; T_ValS.TextSize=16
+
+-- TOTAL CRYSTALS (RED)
+local TotCrystals = Instance.new("Frame", BalanceContainer)
+TotCrystals.BackgroundColor3 = Settings.Theme.Box
+Library:Corner(TotCrystals, 6)
+Library:AddGlow(TotCrystals, Settings.Theme.CrystalRed) -- זוהר אדום
+
+local T_TitleC = Instance.new("TextLabel", TotCrystals)
+T_TitleC.Size = UDim2.new(1,0,0.4,0); T_TitleC.BackgroundTransparency=1; T_TitleC.Text="Total Crystals"; T_TitleC.TextColor3=Settings.Theme.CrystalRed; T_TitleC.Font=Enum.Font.GothamBold; T_TitleC.TextSize=11
+local T_ValC = Instance.new("TextLabel", TotCrystals)
+T_ValC.Size = UDim2.new(1,0,0.6,0); T_ValC.Position=UDim2.new(0,0,0.3,0); T_ValC.BackgroundTransparency=1; T_ValC.Text="Loading..."; T_ValC.TextColor3=Color3.new(1,1,1); T_ValC.Font=Enum.Font.Gotham; T_ValC.TextSize=16
+
+
+--// לוגיקה ומעקב נתונים (Loop Updated)
 task.spawn(function()
     -- המתנה לטעינת התיקייה NX3HO
     local DataFolder = LocalPlayer:WaitForChild("NX3HO", 10)
     if not DataFolder then 
         warn("NX3HO data folder not found on player!")
         TxtLastStorm.Text = "Error: Data not found"
+        T_ValS.Text = "Error"; T_ValC.Text = "Error"
         return 
     end
 
@@ -513,18 +565,22 @@ task.spawn(function()
         local CurrentCrystals = CrystalsRef.Value
         local CurrentShards = ShardsRef.Value
 
-        -- חישוב הפרש קריסטלים
+        -- 1. עדכון Balance (סה"כ בתיק) - הוספנו את זה
+        T_ValS.Text = tostring(CurrentShards)
+        T_ValC.Text = tostring(CurrentCrystals)
+
+        -- 2. חישוב הפרש קריסטלים (SESSION)
         if CurrentCrystals > LastCrystals then
             local diff = CurrentCrystals - LastCrystals
             SessionCrystals = SessionCrystals + diff
             StormCrystals = StormCrystals + diff
         elseif CurrentCrystals < LastCrystals then
-            -- הערך ירד (איפוס עולם או בזבוז) -> איפוס מונה סופה אחרונה
+            -- הערך ירד -> איפוס מונה סופה אחרונה
             StormCrystals = 0
         end
         LastCrystals = CurrentCrystals
 
-        -- חישוב הפרש שארדס
+        -- 3. חישוב הפרש שארדס (SESSION)
         if CurrentShards > LastShards then
             local diff = CurrentShards - LastShards
             SessionShards = SessionShards + diff
@@ -535,15 +591,16 @@ task.spawn(function()
         end
         LastShards = CurrentShards
 
-        -- עדכון התצוגה
-        ValBlue.Text = tostring(SessionCrystals)
-        ValRed.Text = tostring(SessionShards)
+        -- עדכון תצוגת ה-Session
+        -- שינוי: Shards זה כחול (שמאלי) ו Crystals זה אדום (ימני)
+        ValBlue.Text = tostring(SessionShards) -- Shards
+        ValRed.Text = tostring(SessionCrystals) -- Crystals
 
         local totalStorm = StormCrystals + StormShards
         local totalSession = SessionCrystals + SessionShards
 
-        TxtLastStorm.Text = "Collected last storm: " .. totalStorm
-        TxtTotalSession.Text = "Total Collected (Session): " .. totalSession
+        TxtLastStorm.Text = "Last Storm: " .. totalStorm .. " 🌩️"
+        TxtTotalSession.Text = "Session Total: " .. totalSession .. " 📦"
     end
 end)
 
@@ -592,4 +649,3 @@ RunService.RenderStepped:Connect(function()
 end)
 
 print("[SYSTEM] Spaghetti Mafia Hub Loaded Successfully.")
-
